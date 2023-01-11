@@ -5,7 +5,9 @@ import math
 import random
 from matplotlib import pyplot as plt
 from math import ceil
+import time
 
+print(time.time())
 
 def getData(data_size):
     # creating data
@@ -13,10 +15,10 @@ def getData(data_size):
                } #
     data_y= []
     for k in range(1,data_size):
-        addition = random.randint(1, 1)
+        addition = random.randint(1, 3)
         # data_y.append((math.sin(k)) * 1 + addition)
-        data_y.append((k**2 )*3.2 +addition)
-        # data_y.append(math.sqrt(k) * 3.2 + addition)
+        # data_y.append((k**2 )*3.2 +addition)
+        data_y.append(math.sqrt(k) * 3.2 + addition)
     my_data["y"] = data_y
     return my_data
 
@@ -73,10 +75,10 @@ class sample_NN():
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
         hist['epoch'] = self.history_model.epoch
-        plt.plot(self.history_model.history['loss'], label='loss')
-        plt.plot(self.history_model.history['val_loss'], label='val_loss')
+        plt.plot(self.history_model.history['loss'], label='training_loss')
+        plt.plot(self.history_model.history['val_loss'], label='validation_loss')
         plt.xlabel('Epoch')
-        plt.ylabel('Error [MPG]')
+        plt.ylabel('Error [unit]')
         plt.legend()
         plt.grid(True)
         plt.show()
@@ -93,16 +95,20 @@ class sample_NN():
         plt.show()
     def build_model(self, nn_type="SimpleNN"):
         if nn_type=="SimpleNN":
-            self.model = tf.keras.Sequential()
-            self.model.add(tf.keras.layers.Dense(60, kernel_initializer='uniform',
-                                                 activation=tf.keras.activations.relu, input_shape=(1,)))
-            self.model.add(tf.keras.layers.Dropout(0.2))
-            # self.model.add(tf.keras.layers.Dense(60, kernel_initializer='uniform',
-            #                                      activation=tf.keras.activations.relu))
-            # self.model.add(tf.keras.layers.Dense(60, kernel_initializer='uniform',
-            #                                      activation=tf.keras.activations.relu, ))
+            one_lay = tf.keras.layers.Dense(40, kernel_initializer='normal',
+                                                 activation=tf.keras.activations.relu, input_shape=(1,))
 
-            self.model.add(tf.keras.layers.Dense(1, kernel_initializer='uniform', input_shape=(1,)))
+            self.model = tf.keras.Sequential()
+            #self.model.add(tf.keras.layers.Dropout(0.2, input_shape=(1,)))
+            self.model.add(one_lay)
+
+            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
+                                                 activation=tf.keras.activations.relu))
+            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
+                                                 activation=tf.keras.activations.relu))
+            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
+                                                 activation=tf.keras.activations.relu))
+            self.model.add(tf.keras.layers.Dense(1, input_shape=(1,)))
 
             print(self.model.summary())
         elif nn_type=="SimpleRNN":
@@ -111,7 +117,7 @@ class sample_NN():
             self.model.add.tf.keras.layers.Dense(1)
 
     def implNN(self, loaded_model=False, epoch=40, batch_size=1, learning_rate=0.2, nn_type="simpleNN"):
-        self.epoch = epoch # define it either loaded model or not for visualisation
+        self.epoch = epoch
 
         if loaded_model:
             # It can be used to reconstruct the model identically.
@@ -133,7 +139,8 @@ class sample_NN():
 
         self.model.compile(loss=tf.keras.losses.mae,  # mae stands for mean absolute error
                       optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
-                      metrics=['mae'])
+                      metrics=['accuracy'])
+        #training the model
         self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
                        epochs=self.epoch,
                        batch_size=batch_size,verbose=0,
@@ -154,14 +161,21 @@ class sample_NN():
             self.model.save(f"{self.model_name}.h5")
 
 if __name__ == "__main__":
-    data = getData(700)
+    data = getData(1000)
     # data = getComplexData(1100)
+    start = time.time()
     NN = sample_NN("Squarefunc_basic")
     NN.split_train_test(data,train_split=0.7, shuffle=True)
-    NN.implNN(loaded_model=False, epoch=300, batch_size=10, learning_rate=0.0065, nn_type = "SimpleNN")
+    NN.implNN(loaded_model=False, epoch=400, batch_size=20, learning_rate=0.0065, nn_type = "SimpleNN")
     NN.predictNN()
+    end = time.time()
+    runtime = end-start
+    print("Execution Time:",
+          str(round(runtime, 4)), "seconds."
+          )
     NN.showValLoss()
     NN.showTrainTest(with_pred=True)
+
     # NN.save_model(be_mae= 99999)
     # linearPlot(data)
 
