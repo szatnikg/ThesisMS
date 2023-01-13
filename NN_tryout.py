@@ -6,7 +6,7 @@ import random
 from matplotlib import pyplot as plt
 from math import ceil
 import time
-
+from catch import normalize
 print(time.time())
 
 def getData(data_size):
@@ -15,10 +15,10 @@ def getData(data_size):
                } #
     data_y= []
     for k in range(1,data_size):
-        addition = random.randint(1, 3)
+        addition = random.randint(1, 2)
         # data_y.append((math.sin(k)) * 1 + addition)
-        # data_y.append((k**2 )*3.2 +addition)
-        data_y.append(math.sqrt(k) * 3.2 + addition)
+        data_y.append((k**(2)) +addition)
+        # data_y.append(math.sqrt(k) * 3.2 + addition)
     my_data["y"] = data_y
     return my_data
 
@@ -63,10 +63,9 @@ class sample_NN():
             shuffler = numpy.random.permutation(len(self.x))
             self.x = self.x[shuffler]
             self.y = self.y[shuffler]
-        # TODO get validation data set as well.
         slicer = ceil((len(self.x)*train_split))
-        self.x_train = self.x[:slicer]
-        self.y_train = self.y[:slicer]
+        self.x_train = self.x[:slicer+1]
+        self.y_train = self.y[:slicer+1]
         self.x_test = self.x[slicer:]
         self.y_test = self.y[slicer:]
         print(len(self.x_train),len(self.y_train),":train dataset\n",
@@ -74,6 +73,7 @@ class sample_NN():
         return
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
+        print(self.history_model.history["mse"][-1])
         hist['epoch'] = self.history_model.epoch
         plt.plot(self.history_model.history['loss'], label='training_loss')
         plt.plot(self.history_model.history['val_loss'], label='validation_loss')
@@ -83,6 +83,10 @@ class sample_NN():
         plt.grid(True)
         plt.show()
 
+    def soft_acc(self):
+        return tf.keras.backend.mean(tf.keras.backend.equal(tf.keras.backend.round(self.y_test), tf.keras.backend.round(self.preds.squeeze())))
+
+    # Usage: model.compile(..., metrics=[soft_acc])
 
     def showTrainTest(self,with_pred=None):
         plt.figure(figsize=(12, 6))
@@ -101,14 +105,14 @@ class sample_NN():
             self.model = tf.keras.Sequential()
             #self.model.add(tf.keras.layers.Dropout(0.2, input_shape=(1,)))
             self.model.add(one_lay)
+            #self.model.add(tf.keras.layers.BatchNormalization())
+            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
+                                                 activation=tf.keras.activations.gelu))
+            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
+                                                 activation=tf.keras.activations.gelu))
 
-            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
-                                                 activation=tf.keras.activations.relu))
-            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
-                                                 activation=tf.keras.activations.relu))
-            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
-                                                 activation=tf.keras.activations.relu))
-            self.model.add(tf.keras.layers.Dense(1, input_shape=(1,)))
+            #self.model.add(tf.keras.layers.BatchNormalization())
+            self.model.add(tf.keras.layers.Dense(1, input_shape=(1,),activation="linear"))
 
             print(self.model.summary())
         elif nn_type=="SimpleRNN":
@@ -116,7 +120,7 @@ class sample_NN():
             self.model.add(tf.keras.layers.SimpleRNN(20, return_sequences=True, input_shape=(1,)))
             self.model.add.tf.keras.layers.Dense(1)
 
-    def implNN(self, loaded_model=False, epoch=40, batch_size=1, learning_rate=0.2, nn_type="simpleNN"):
+    def implNN(self, loaded_model=False, epoch=90, batch_size=1, learning_rate=0.2, nn_type="simpleNN"):
         self.epoch = epoch
 
         if loaded_model:
@@ -137,24 +141,29 @@ class sample_NN():
             decay_steps=10000,
             decay_rate=0.9)
 
-        self.model.compile(loss=tf.keras.losses.mae,  # mae stands for mean absolute error
-                      optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
-                      metrics=['accuracy'])
+        self.model.compile(loss=tf.keras.losses.mse,  # mae stands for mean absolute error
+                      optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule)  # stochastic GD
+                      ,metrics=["mse"]) # metrics=['accuracy']
         #training the model
         self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
                        epochs=self.epoch,
-                       batch_size=batch_size,verbose=0,
+                       batch_size=batch_size,verbose=1,
                        validation_split = 0.2)
 
     def predictNN(self):
         self.preds = self.model.predict([self.x_test])
+        # ToDo get R^2 func or similar for evaluation...
         # get data about predictions
         self.mae = tf.metrics.mean_absolute_error(y_true=self.y_test,
                                              y_pred=self.preds.squeeze()).numpy()
         mse = tf.metrics.mean_squared_error(y_true=self.y_test,
                                             y_pred=self.preds.squeeze()).numpy()
-        print("mae:", self.mae, "\n",
-              "mse:", mse  )
+        print("preds", self.preds.squeeze())
+        # acc = tf.metrics.RootMeanSquaredError()
+        # acc.update_state(self.y_test, self.preds.squeeze())
+        # print("mae:", self.mae, "\n",
+        #       "mse:", mse  ,"\n",
+        #         "accuracy", acc.result().numpy())
 
     def save_model(self, be_mae= 1):
         if self.mae <= be_mae:
@@ -166,11 +175,11 @@ if __name__ == "__main__":
     start = time.time()
     NN = sample_NN("Squarefunc_basic")
     NN.split_train_test(data,train_split=0.7, shuffle=True)
-    NN.implNN(loaded_model=False, epoch=400, batch_size=20, learning_rate=0.0065, nn_type = "SimpleNN")
+    NN.implNN(loaded_model=False, epoch=60, batch_size=5, learning_rate=0.0065, nn_type= "SimpleNN")
     NN.predictNN()
     end = time.time()
     runtime = end-start
-    print("Execution Time:",
+    print("Training Time:",
           str(round(runtime, 4)), "seconds."
           )
     NN.showValLoss()
