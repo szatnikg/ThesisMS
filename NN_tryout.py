@@ -107,7 +107,7 @@ class sample_NN():
 
         #training the model
         if earlystop:
-            EarlyStop = tf.keras.callbacks.EarlyStopping(patience=10)
+            EarlyStop = tf.keras.callbacks.EarlyStopping(patience=30)
         self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
                        epochs=self.epoch,
                        batch_size=batch_size,verbose=0,
@@ -127,7 +127,11 @@ class sample_NN():
                                              y_pred=self.preds.squeeze()).numpy()
         mse = tf.metrics.mean_squared_error(y_true=self.y_test,
                                             y_pred=self.preds.squeeze()).numpy()
-        #print("preds", self.preds.squeeze())
+        # ToDo implement Classification accuracy
+        if "classificationProblem":
+            acc = tf.metrics.Accuracy()
+            acc.update_state([[3.1,45]], [[3.0,45 ]])
+            print("accuracy: ",acc.result().numpy())
         # acc = tf.metrics.RootMeanSquaredError()
         # acc.update_state(self.y_test, self.preds.squeeze())
         print("mae:", round(self.mae,5)*100, "% \n",
