@@ -1,11 +1,13 @@
 import tensorflow as tf
 import numpy
+
+import DataProcessing
 import GenerateData
 import pandas as pd
 from matplotlib import pyplot as plt
 from math import ceil
 import time
-from catch import normalize
+
 
 
 class sample_NN():
@@ -69,7 +71,7 @@ class sample_NN():
             self.model.add(one_lay)
             #self.model.add(tf.keras.layers.BatchNormalization())
             self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
-                                                 activation=tf.keras.activations.gelu))
+                                                 activation=tf.keras.activations.relu))
 
             #self.model.add(tf.keras.layers.BatchNormalization())
             self.model.add(tf.keras.layers.Dense(1, input_shape=(1,),activation="linear"))
@@ -101,9 +103,9 @@ class sample_NN():
             decay_steps=10000,
             decay_rate=0.9)
 
-        self.model.compile(loss=tf.keras.losses.mae,  # mae stands for mean absolute error
+        self.model.compile(loss=tf.keras.losses.mse,  # mae stands for mean absolute error
                       optimizer=tf.keras.optimizers.Adam(learning_rate=lr_schedule)  # stochastic GD
-                      ,metrics=["mae"]) # metrics=['accuracy']
+                      ,metrics=["mse"]) # metrics=['accuracy']
 
         #training the model
         if earlystop:
@@ -134,7 +136,7 @@ class sample_NN():
             print("accuracy: ",acc.result().numpy())
         # acc = tf.metrics.RootMeanSquaredError()
         # acc.update_state(self.y_test, self.preds.squeeze())
-        print("mae:", round(self.mae,5)*100, "% \n",
+        print("mae:", round(self.mae,5), "\n",
               "mse:", mse  ,"\n")
 
     def save_model(self, be_mae= 1):
@@ -142,15 +144,18 @@ class sample_NN():
             self.model.save(f"{self.model_name}.h5")
 
 if __name__ == "__main__":
-    pred_x = [] #[1, 10, 100, 400]
-    pred_y = [] #[1,1000,1000000,64e6]
+    pred_x = []#[0.95, 1,1.1,1.2,1.3,1.4,1.5]
+    pred_y = []#[0.95**2, 1.002,1.1**2, 1.2**2+0.02,1.3**2 ,1.4**2+0.02, 1.5**2]
 
-    data = GenerateData.getDataNormalized(700 , type='square')
+    data = GenerateData.genUnNormalizedData(700 , type='square')
     # data = getComplexData(1100)
+
+    #Preprocess
+    data = DataProcessing.Scaler().normalize(data, features=[])
     start = time.time()
-    NN = sample_NN("Squarefunc_basic")
-    NN.split_train_test(data, train_split=0.7, shuffle=True,OwnPrediction_x=pred_x,OwnPrediction_y=pred_y)
-    NN.implNN(loaded_model=False, epoch=50, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
+    NN = sample_NN("TryoutBasic")
+    NN.split_train_test(data, train_split=0.7, shuffle=True, OwnPrediction_x=pred_x,OwnPrediction_y=pred_y)
+    NN.implNN(loaded_model=False, epoch=90, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
     NN.predictNN()
     end = time.time()
     runtime = end-start

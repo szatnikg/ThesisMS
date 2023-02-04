@@ -2,7 +2,7 @@ import math, random
 import pandas as pd
 from matplotlib import pyplot as plt
 
-def getDataNormalized(data_size, type="linear"):
+def genNormalizedData(data_size, type="linear"):
     # creating data
     my_data = {"x": [j/data_size for j in range(1, data_size)]
                } #
@@ -13,16 +13,19 @@ def getDataNormalized(data_size, type="linear"):
         if type =="linear":
             data_y.append(number* 1.3 + addition)
         elif type =="square":
-            data_y.append((number ** (6)) + addition)
+            data_y.append((number ** (2)) + addition)
         elif type == "root":
 
             data_y.append(math.sqrt(number) * 3.2 + addition)
+        elif type =="polinomial":
+            data_y.append((number**2) + (2 * number**3) + (number**4) + addition)
         else:
             data_y.append((math.sin(number)) * 1 + addition)
     my_data["y"] = data_y
     return my_data
 
-def getDataUnnormalized(data_size, type="linear"):
+def genUnNormalizedData(data_size, type="linear"):
+    import DataProcessing
     # creating data
     my_data = {"x": [j for j in range(1, data_size)]
                } #
@@ -37,13 +40,16 @@ def getDataUnnormalized(data_size, type="linear"):
         elif type == "root":
 
             data_y.append(math.sqrt(number) * 3.2 + addition)
+        elif type =="polinomial":
+            data_y.append((number**2) + (2 * number**3) + (number**4) + addition)
         else:
             data_y.append((math.sin(number)) * 1 + addition)
+    # normalizing it with min-max scaling
     my_data["y"] = data_y
     return my_data
 
 
-def getComplexData(data_size):
+def genComplexData(data_size):
     my_data = {}
     x_data = [j for j in range(1, data_size)]
     y_data = []
@@ -73,6 +79,11 @@ def linearPlot(my_data):
     plt.show()
     #print(df.head(20))
 
+
+
 if __name__ == "__main__":
-    szamok = getData(650,type="root")
-    linearPlot(szamok)
+    import DataProcessing
+    normaltSzamok = {}
+    szamok = genUnNormalizedData(700,type="square")
+    normaltSzamok = DataProcessing.Scaler().normalize(szamok, features=["y"])
+    linearPlot(normaltSzamok)
