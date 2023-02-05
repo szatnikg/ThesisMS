@@ -13,27 +13,63 @@ import time
 class sample_NN():
     def __init__(self, model_name):
         self.model_name = model_name
+        self.preprocessed = False
 
-    def split_train_test(self, my_data, shuffle=True, train_split= 0.8,OwnPrediction_x=[],OwnPrediction_y=[]):
-        self.x = numpy.array(my_data["x"])
-        self.y = numpy.array(my_data["y"])
-        if shuffle:
-            shuffler = numpy.random.permutation(len(self.x))
-            self.x = self.x[shuffler]
-            self.y = self.y[shuffler]
+    def preprocessing(self, data, normalize=True):
+        if normalize:
+            self.scale = DataProcessing.Scaler(features=["x"])
+            self.data = self.scale.normalize(data,
+                                             label_feature_name="y",
+                                             prediction_feature_name="preds")
+            self.preprocessed = True
+        else: self.data = data
 
-        slicer = ceil((len(self.x)*train_split))
-        self.x_train = self.x[:slicer+1]
-        self.y_train = self.y[:slicer+1]
-        if len(OwnPrediction_x) == 0:
+    def postprocessing(self, is_preds_normalized=True):
+        if not self.preprocessed:
+            raise ReferenceError("First call the preprocessing method with normalize=True")
+
+        self.data = self.scale.denormalize(self.data, is_preds_normalized=False)
+        self.x = numpy.array(self.data["x"])
+        self.y = numpy.array(self.data["y"])
+        if self.shuffle:
+            self.x = self.x[self.shuffler]
+            self.y = self.y[self.shuffler]
+
+        # separating preds-data due to unequal record number with original dataset
+        if is_preds_normalized:
+            self.preds = self.scale.denormalize(self.data_pred, is_preds_normalized=is_preds_normalized)["preds"]
+
+        self.splitting()
+
+    def splitting(self):
+        slicer = ceil((len(self.x) * self.train_split))
+        self.x_train = self.x[:slicer + 1]
+        self.y_train = self.y[:slicer + 1]
+        if len(self.OwnPrediction_x) == 0:
             self.x_test = self.x[slicer:]
             self.y_test = self.y[slicer:]
         else:
-            self.x_test = numpy.array(OwnPrediction_x)
-            self.y_test = numpy.array(OwnPrediction_y)
-        print(len(self.x_train),len(self.y_train),":train dataset\n",
-              len(self.x_test),len(self.y_test),":test dataset")
+            self.x_test = numpy.array(self.OwnPrediction_x)
+            self.y_test = numpy.array(self.OwnPrediction_y)
+
+    def split_train_test(self, shuffle=True, train_split= 0.8,OwnPrediction_x=[],OwnPrediction_y=[]):
+        self.shuffle = shuffle
+        self.OwnPrediction_x = OwnPrediction_x
+        self.OwnPrediction_y = OwnPrediction_y
+        self.train_split = train_split
+        self.x = numpy.array(self.data["x"])
+        self.y = numpy.array(self.data["y"])
+        if shuffle:
+            self.shuffler = numpy.random.permutation(len(self.x))
+            self.x = self.x[self.shuffler]
+            self.y = self.y[self.shuffler]
+
+        self.splitting()
+        print(len(self.x_train), len(self.y_train),":train dataset\n",
+              len(self.x_test), len(self.y_test),":test dataset")
+
         return
+
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
         #print(self.history_model.history["mse"][0])
@@ -49,10 +85,8 @@ class sample_NN():
     def soft_acc(self):
         return tf.keras.backend.mean(tf.keras.backend.equal(tf.keras.backend.round(self.y_test), tf.keras.backend.round(self.preds.squeeze())))
 
-    # Usage: model.compile(..., metrics=[soft_acc])
-
     def showTrainTest(self,with_pred=None):
-        plt.figure(figsize=(12, 6))
+        plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
             plt.scatter(self.x_test, self.preds, c='r', label='Predicted data')
         plt.scatter(self.x_train, self.y_train, c='b', label='Training data')
@@ -63,14 +97,14 @@ class sample_NN():
 
     def build_model(self, nn_type="SimpleNN"):
         if nn_type=="SimpleNN":
-            one_lay = tf.keras.layers.Dense(40, kernel_initializer='normal',
+            one_lay = tf.keras.layers.Dense(30, kernel_initializer='normal',
                                                  activation=tf.keras.activations.relu, input_shape=(1,))
 
             self.model = tf.keras.Sequential()
             #self.model.add(tf.keras.layers.Dropout(0.2, input_shape=(1,)))
             self.model.add(one_lay)
             #self.model.add(tf.keras.layers.BatchNormalization())
-            self.model.add(tf.keras.layers.Dense(40, kernel_initializer='normal',
+            self.model.add(tf.keras.layers.Dense(30, kernel_initializer='normal',
                                                  activation=tf.keras.activations.relu))
 
             #self.model.add(tf.keras.layers.BatchNormalization())
@@ -110,19 +144,23 @@ class sample_NN():
         #training the model
         if earlystop:
             EarlyStop = tf.keras.callbacks.EarlyStopping(patience=30)
+        else: EarlyStop = []
         self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
                        epochs=self.epoch,
                        batch_size=batch_size,verbose=0,
                        validation_split=0.2,
                        callbacks=[EarlyStop])
-        self.es = EarlyStop.stopped_epoch
-        if self.es != 0:
-            print("Stopped at epoch number:" ,str(self.es))
+        if earlystop:
+            self.es = EarlyStop.stopped_epoch
+            if self.es != 0:
+                print("Stopped at epoch number:" ,str(self.es))
         else:
             self.es = self.epoch
 
     def predictNN(self):
         self.preds = self.model.predict([self.x_test])
+        self.data_pred = {}
+        self.data_pred["preds"] = self.preds.squeeze().tolist()
         # ToDo get R^2 func or similar for evaluation...
         # get data about predictions
         self.mae = tf.metrics.mean_absolute_error(y_true=self.y_test,
@@ -147,15 +185,17 @@ if __name__ == "__main__":
     pred_x = []#[0.95, 1,1.1,1.2,1.3,1.4,1.5]
     pred_y = []#[0.95**2, 1.002,1.1**2, 1.2**2+0.02,1.3**2 ,1.4**2+0.02, 1.5**2]
 
-    data = GenerateData.genUnNormalizedData(700 , type='square')
+    data = GenerateData.genUnNormalizedData(200 , type='linear')
     # data = getComplexData(1100)
 
     #Preprocess
-    data = DataProcessing.Scaler().normalize(data, features=[])
+
     start = time.time()
+
     NN = sample_NN("TryoutBasic")
-    NN.split_train_test(data, train_split=0.7, shuffle=True, OwnPrediction_x=pred_x,OwnPrediction_y=pred_y)
-    NN.implNN(loaded_model=False, epoch=90, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
+    NN.preprocessing(data,normalize=True)
+    NN.split_train_test(train_split=0.7, shuffle=True, OwnPrediction_x=pred_x,OwnPrediction_y=pred_y)
+    NN.implNN(loaded_model=False, epoch=100, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
     NN.predictNN()
     end = time.time()
     runtime = end-start
@@ -163,6 +203,8 @@ if __name__ == "__main__":
           str(round(runtime, 4)), "seconds."
           )
     NN.showValLoss()
+    # ToDo if features list contains the label_feature_name, automatically set is_preds_normalized to true.
+    #NN.postprocessing(is_preds_normalized=True)
     NN.showTrainTest(with_pred=True)
 
     # NN.save_model(be_mae= 99999)

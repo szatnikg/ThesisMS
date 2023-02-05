@@ -83,7 +83,9 @@ def linearPlot(my_data):
 
 if __name__ == "__main__":
     import DataProcessing
-    normaltSzamok = {}
+    scale = DataProcessing.Scaler(features=[])
     szamok = genUnNormalizedData(700,type="square")
-    normaltSzamok = DataProcessing.Scaler().normalize(szamok, features=["y"])
+    normaltSzamok = scale.normalize(szamok)
+
     linearPlot(normaltSzamok)
+    linearPlot(scale.denormalize(normaltSzamok))
