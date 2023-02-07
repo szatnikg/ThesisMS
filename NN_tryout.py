@@ -15,9 +15,9 @@ class sample_NN():
         self.model_name = model_name
         self.preprocessed = False
 
-    def preprocessing(self, data, normalize=True):
+    def preprocessing(self, data, normalize=True, features=[]):
         if normalize:
-            self.scale = DataProcessing.Scaler(features=["x"])
+            self.scale = DataProcessing.Scaler(features=features)
             self.data = self.scale.normalize(data,
                                              label_feature_name="y",
                                              prediction_feature_name="preds")
@@ -185,17 +185,16 @@ if __name__ == "__main__":
     pred_x = []#[0.95, 1,1.1,1.2,1.3,1.4,1.5]
     pred_y = []#[0.95**2, 1.002,1.1**2, 1.2**2+0.02,1.3**2 ,1.4**2+0.02, 1.5**2]
 
-    data = GenerateData.genUnNormalizedData(200 , type='linear')
+    data = GenerateData.genUnNormalizedData(500 , type='square')
     # data = getComplexData(1100)
-
-    #Preprocess
 
     start = time.time()
 
     NN = sample_NN("TryoutBasic")
-    NN.preprocessing(data,normalize=True)
+    # Preprocess
+    NN.preprocessing(data,normalize=True,features=["y","x"])
     NN.split_train_test(train_split=0.7, shuffle=True, OwnPrediction_x=pred_x,OwnPrediction_y=pred_y)
-    NN.implNN(loaded_model=False, epoch=100, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
+    NN.implNN(loaded_model=False, epoch=30, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
     NN.predictNN()
     end = time.time()
     runtime = end-start
@@ -204,7 +203,7 @@ if __name__ == "__main__":
           )
     NN.showValLoss()
     # ToDo if features list contains the label_feature_name, automatically set is_preds_normalized to true.
-    #NN.postprocessing(is_preds_normalized=True)
+    NN.postprocessing(is_preds_normalized=True)
     NN.showTrainTest(with_pred=True)
 
     # NN.save_model(be_mae= 99999)
