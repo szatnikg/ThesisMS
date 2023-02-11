@@ -22,7 +22,7 @@ def genNormalizedData(data_size, type="linear"):
         else:
             data_y.append((math.sin(number)) * 1 + addition)
     my_data["y"] = data_y
-    return my_data
+    return pd.DataFrame(my_data)
 
 def genUnNormalizedData(data_size, type="linear"):
     import DataProcessing
@@ -46,7 +46,7 @@ def genUnNormalizedData(data_size, type="linear"):
             data_y.append((math.sin(number)) * 1 + addition)
     # normalizing it with min-max scaling
     my_data["y"] = data_y
-    return my_data
+    return pd.DataFrame(my_data)
 
 
 def genComplexData(data_size):
@@ -71,21 +71,19 @@ def genComplexData(data_size):
 
     my_data["x"] = x_data
     my_data["y"] = y_data
-    return my_data
+    return pd.DataFrame(my_data)
 
 def linearPlot(my_data):
     df = pd.DataFrame(my_data)
-    plt.plot(my_data["x"], my_data["y"])
+    plt.plot(df["x"], df["y"])
     plt.show()
-    #print(df.head(20))
-
 
 
 if __name__ == "__main__":
     import DataProcessing
     scale = DataProcessing.Scaler(features=[])
-    szamok = genUnNormalizedData(700,type="square")
+    szamok = genUnNormalizedData(700)
     normaltSzamok = scale.normalize(szamok)
 
     linearPlot(normaltSzamok)
-    linearPlot(scale.denormalize(normaltSzamok))
+    linearPlot(scale.denormalize(normaltSzamok,is_preds_normalized=False))

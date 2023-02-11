@@ -6,16 +6,19 @@ df = pd.DataFrame({"x" : [40,234,452,1000 ],
 df_nopred = pd.DataFrame({"x" : [40,234,452,1000 ],
                    "y": [31,41,411,3300],
                    } )
+# print(df.iloc[:,-1])
+# print(df.columns[:-1])
+
 
 class Scaler:
     def __init__(self, features=[]):
         self.features = features
 
-    def normalize(self, dict_df, label_feature_name="y", prediction_feature_name="preds" ):
+    def normalize(self, dict_df, label_feature_name="y", prediction_feature_name="preds", to_dict=False):
         df = pd.DataFrame(dict_df)
         result = df.copy()
-        #original = df.copy()
         self.prediction_feature_name = prediction_feature_name
+        self.to_dict = to_dict
         if not len(self.features):
             loop_container = df.columns
         else: loop_container = self.features
@@ -32,11 +35,13 @@ class Scaler:
             self.feature_all_min[feature_name] = min_value
             self.feature_all_max[feature_name] = max_value
 
-        dict_to_return = {}
-        for col in result.columns:
-            dict_to_return[col] = result[col].values.tolist()
-
-        return dict_to_return
+        if self.to_dict:
+            dict_to_return = {}
+            for col in result.columns:
+                dict_to_return[col] = result[col].values.tolist()
+            return dict_to_return
+        else:
+            return result
 
     def denormalize(self, dict_df, is_preds_normalized=True):
         df = pd.DataFrame(dict_df)
@@ -53,18 +58,23 @@ class Scaler:
                 max_value = self.feature_all_max[feature_name]
                 min_value = self.feature_all_min[feature_name]
                 original[feature_name] = (original[feature_name] * (max_value - min_value) + min_value)
-
-        dict_to_return = {}
-        for col in original.columns:
-            dict_to_return[col] = original[col].values.tolist()
-        print(dict_to_return)
-        return dict_to_return
+        if self.to_dict:
+            dict_to_return = {}
+            for col in original.columns:
+                dict_to_return[col] = original[col].values.tolist()
+            return dict_to_return
+        else:
+            return original
 
 if __name__ == "__main__":
-    scale = Scaler()
+    scale = Scaler(df_nopred.columns[::])
     a = scale.normalize(df_nopred)
     a["preds"] = [0.9099442651804048, 0.009680258140217073, 0.0, 1.1]
-    b = scale.denormalize(a)
+    b = scale.denormalize(a, is_preds_normalized=False)
     print("normalizing", a)
     print("denormalizing", b)
 
+    print(df.iloc[:2, 1])
+    from matplotlib import pyplot as plt
+    plt.scatter(df.iloc[:2, 1], df.iloc[:2, 2])
+    plt.show()
