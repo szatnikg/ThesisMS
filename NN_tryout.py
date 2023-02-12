@@ -1,3 +1,5 @@
+import array
+
 import pandas
 import tensorflow as tf
 import numpy
@@ -16,17 +18,27 @@ class sample_NN():
         self.model_name = model_name
         self.preprocessed = False
 
-    def preprocessing(self, x, y, normalize=True, features=[]):
+    def preprocessing(self, x, y, normalize=True,OwnPred_x=[],OwnPred_y=[] ,features=[]):
         # Todo implement features_x, features_y
+        self.OwnPred_x = OwnPred_x.copy()
+        self.OwnPred_y = OwnPred_y.copy()
         if normalize:
             self.scale_x = DataProcessing.Scaler(features=features)
             self.x = self.scale_x.normalize(x,
-                                             label_feature_name="y",
-                                             prediction_feature_name="preds")
+                                         label_feature_name="y",
+                                         prediction_feature_name="preds")
 
             self.scale_y = DataProcessing.Scaler(features=features)
-            self.y = self.scale_y.normalize(y)
+            self.y = self.scale_y.normalize(y,
+                                         label_feature_name="y",
+                                         prediction_feature_name="preds")
 
+            # y_test data shouldn't be normalized but x_test (with OwnPred as well)
+            # has to be normalized for model.fit method using the x_train normalizer:
+            self.OwnPred_x = self.scale_x.normalize(self.OwnPred_x,
+                                            label_feature_name="y",
+                                            prediction_feature_name="preds")
+            print("Ownpred after normalizing",self.OwnPred_x)
             self.preprocessed = True
         else:
             self.x = x
@@ -38,6 +50,9 @@ class sample_NN():
 
         self.x = self.scale_x.denormalize(self.x, is_preds_normalized=False)
         self.y = self.scale_y.denormalize(self.y, is_preds_normalized=False)
+
+        self.OwnPred_x = self.scale_x.denormalize(self.OwnPred_x, is_preds_normalized=False)
+
         if self.shuffle:
             self.x = self.x.iloc[self.shuffler]
             self.y = self.y.iloc[self.shuffler]
@@ -45,8 +60,6 @@ class sample_NN():
         # separating preds-data due to unequal record number with original dataset
         if is_preds_normalized:
             self.preds = self.scale_y.denormalize(self.preds, is_preds_normalized=is_preds_normalized)
-            # self.preds = self.preds.iloc[self.shuffler]
-        #self.OwnPredData =self.scale.denormalize(self.OwnPredData, is_preds_normalized=is_preds_normalized)
 
         self.splitting()
 
@@ -54,20 +67,17 @@ class sample_NN():
         slicer = ceil((len(self.x) * self.train_split))
         self.x_train = self.x[:slicer]
         self.y_train = self.y[:slicer]
-        if len(self.OwnPrediction_x) == 0:
+
+        if len(self.OwnPred_x) == 0:
             self.x_test = self.x[slicer-1:]
             self.y_test = self.y[slicer-1:]
         else:
-            self.x_test = self.OwnPrediction_x
-            self.y_test = self.OwnPrediction_y
+            self.x_test = self.OwnPred_x
+            self.y_test = self.OwnPred_y
 
-    def split_train_test(self, shuffle=True, train_split=0.8, OwnPrediction_x=[],OwnPrediction_y=[]):
+    def split_train_test(self, shuffle=True, train_split=0.8):
         self.shuffle = shuffle
         self.train_split = train_split
-        self.OwnPrediction_x = OwnPrediction_x
-        self.OwnPrediction_y = OwnPrediction_y
-        # self.OwnPredData = {"x": self.OwnPrediction_x, "y": self.OwnPrediction_y}
-        # self.OwnPredData = self.preprocessing(self.OwnPredData)
 
         if shuffle:
             self.shuffler = numpy.random.permutation(len(self.x))
@@ -101,6 +111,7 @@ class sample_NN():
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
             plt.scatter(self.x_test, self.preds, c='r', label='Predicted data')
+        print("showTrainTest:",self.x_train)
         plt.scatter(self.x_train, self.y_train, c='b', label='Training data')
         plt.scatter(self.x_test, self.y_test, c='g', label='Testing data')
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
@@ -195,11 +206,11 @@ class sample_NN():
             self.model.save(f"{self.model_name}.h5")
 
 if __name__ == "__main__":
-    pred_x = [] # pandas.DataFrame({"x":[i for i in range(100, 300)]})
-    pred_y = [] # pandas.DataFrame({"x":[j**2 for j in range(100, 300)]})
+    pred_x = pandas.DataFrame({"x": [i for i in range(1, 400)]})
+    pred_y = pandas.DataFrame({"y": [j**2 for j in range(1, 400)]})
 
     # type(data) = pd.Dataframe
-    data = GenerateData.genUnNormalizedData(100, type='linear')
+    data = GenerateData.genUnNormalizedData(500, type='square')
 
     # NN training start time
     start = time.time()
@@ -209,12 +220,12 @@ if __name__ == "__main__":
     x = data[data.columns[:-1]]
     y = data[data.columns[-1]]
     NN.preprocessing(x,
-                     y, normalize=True, features=[])
-    NN.split_train_test(train_split=0.75, shuffle=True, OwnPrediction_x=pred_x, OwnPrediction_y=pred_y)
-    NN.implNN(loaded_model=False, epoch=30, batch_size=5, learning_rate=0.0035, nn_type= "SimpleNN",earlystop=1)
+                     y, normalize=True, features=[], OwnPred_x=pred_x, OwnPred_y=pred_y)
+    NN.split_train_test(train_split=1, shuffle=True)
+    NN.implNN(loaded_model=False, epoch=30, batch_size=5, learning_rate=0.0035, nn_type="SimpleNN", earlystop=1)
     NN.predictNN()
-    print("after predictions",NN.x_test)
-    print("PREDS after predictions ", NN.preds)
+
+    # print("PREDS after predictions ", NN.preds)
     end = time.time()
     runtime = end-start
     print("Training Time:",
@@ -223,8 +234,8 @@ if __name__ == "__main__":
     NN.showValLoss()
     # ToDo if features list contains the label_feature_name, automatically set is_preds_normalized to true.
     NN.postprocessing(is_preds_normalized=True)
-    print("PREDS after postprocessing ", NN.preds)
-    print("x-test after postprocessing ", NN.x_test)
+    # print("PREDS after postprocessing ", NN.preds)
+    print("x-train after postprocessing ", max(NN.x_train["x"]))
     NN.showTrainTest(with_pred=True)
 
     # NN.save_model(be_mae= 99999)

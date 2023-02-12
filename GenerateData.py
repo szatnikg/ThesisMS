@@ -36,9 +36,8 @@ def genUnNormalizedData(data_size, type="linear"):
         if type =="linear":
             data_y.append(number* 1.3 + addition)
         elif type =="square":
-            data_y.append((number ** (2)) + addition)
+            data_y.append((number ** (2)) +addition)
         elif type == "root":
-
             data_y.append(math.sqrt(number) * 3.2 + addition)
         elif type =="polinomial":
             data_y.append((number**2) + (2 * number**3) + (number**4) + addition)

@@ -13,6 +13,7 @@ df_nopred = pd.DataFrame({"x" : [40,234,452,1000 ],
 class Scaler:
     def __init__(self, features=[]):
         self.features = features
+        self.already_constructed = False
 
     def normalize(self, dict_df, label_feature_name="y", prediction_feature_name="preds", to_dict=False):
         df = pd.DataFrame(dict_df)
@@ -23,18 +24,28 @@ class Scaler:
             loop_container = df.columns
         else: loop_container = self.features
 
-        self.feature_all_max, self.feature_all_min = {}, {}
+        if not self.already_constructed:
+            self.feature_all_max, self.feature_all_min = {}, {}
+
+        # if already constructed, apply the given feautre_all_max/min for normalization
+
         for feature_name in loop_container:
-            max_value = df[feature_name].max()
-            min_value = df[feature_name].min()
+            if self.already_constructed:
+                print("already constructed line",self.feature_all_max)
+                max_value = self.feature_all_max[feature_name]
+                min_value = self.feature_all_min[feature_name]
+            else:
+                max_value = df[feature_name].max()
+                min_value = df[feature_name].min()
             result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
-            # if feature_name == label: add an additional one for preds.
+            # if feature_name == label: create an additional one for preds.
             if feature_name == label_feature_name:
                 self.feature_all_min[self.prediction_feature_name] = min_value
                 self.feature_all_max[self.prediction_feature_name] = max_value
             self.feature_all_min[feature_name] = min_value
             self.feature_all_max[feature_name] = max_value
-
+        self.already_constructed = True
+        print(self.feature_all_max)
         if self.to_dict:
             dict_to_return = {}
             for col in result.columns:
@@ -46,7 +57,7 @@ class Scaler:
     def denormalize(self, dict_df, is_preds_normalized=True):
         df = pd.DataFrame(dict_df)
         original = df.copy()
-
+        # print("denormalizing dataframe: ", original)
         if not len(self.features):
             loop_container = df.columns
         else: loop_container = self.features
