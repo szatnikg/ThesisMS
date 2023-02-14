@@ -32,7 +32,7 @@ def genUnNormalizedData(data_size, type="linear"):
     data_y= []
     for k in range(1, data_size):
         number = k
-        addition = random.choice([0.02,0.05,0.09,0.04])
+        addition = random.choice([2,4,9,44])
         if type =="linear":
             data_y.append(number* 1.3 + addition)
         elif type =="square":
@@ -81,7 +81,7 @@ def linearPlot(my_data):
 if __name__ == "__main__":
     import DataProcessing
     scale = DataProcessing.Scaler(features=[])
-    szamok = genUnNormalizedData(700)
+    szamok = genUnNormalizedData(700,type="else")
     normaltSzamok = scale.normalize(szamok)
 
     linearPlot(normaltSzamok)

@@ -31,7 +31,6 @@ class Scaler:
 
         for feature_name in loop_container:
             if self.already_constructed:
-                print("already constructed line",self.feature_all_max)
                 max_value = self.feature_all_max[feature_name]
                 min_value = self.feature_all_min[feature_name]
             else:
@@ -45,7 +44,6 @@ class Scaler:
             self.feature_all_min[feature_name] = min_value
             self.feature_all_max[feature_name] = max_value
         self.already_constructed = True
-        print(self.feature_all_max)
         if self.to_dict:
             dict_to_return = {}
             for col in result.columns:

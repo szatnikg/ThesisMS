@@ -38,7 +38,6 @@ class sample_NN():
             self.OwnPred_x = self.scale_x.normalize(self.OwnPred_x,
                                             label_feature_name="y",
                                             prediction_feature_name="preds")
-            print("Ownpred after normalizing",self.OwnPred_x)
             self.preprocessed = True
         else:
             self.x = x
@@ -53,7 +52,7 @@ class sample_NN():
 
         self.OwnPred_x = self.scale_x.denormalize(self.OwnPred_x, is_preds_normalized=False)
 
-        if self.shuffle:
+        if self.shuffle and len(self.OwnPred_x) > 0:
             self.x = self.x.iloc[self.shuffler]
             self.y = self.y.iloc[self.shuffler]
 
@@ -111,18 +110,20 @@ class sample_NN():
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
             plt.scatter(self.x_test, self.preds, c='r', label='Predicted data')
-        print("showTrainTest:",self.x_train)
         plt.scatter(self.x_train, self.y_train, c='b', label='Training data')
         plt.scatter(self.x_test, self.y_test, c='g', label='Testing data')
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.legend()
         plt.show()
 
+        print("preds:",self.preds,"\n","test: ",self.y_test)
     def build_model(self, nn_type="SimpleNN"):
         if nn_type=="SimpleNN":
             # input shape: (train_features.shape[-1],)
             one_lay = tf.keras.layers.Dense(30, kernel_initializer='normal',
-                                                 activation=tf.keras.activations.relu, input_shape=(1,))
+                                                 activation=tf.keras.activations.relu,
+                                            input_shape=(self.x_train.shape[1],))
+
 
             self.model = tf.keras.Sequential()
             #self.model.add(tf.keras.layers.Dropout(0.2, input_shape=(1,)))
@@ -184,12 +185,15 @@ class sample_NN():
         self.preds = self.model.predict([self.x_test])
         self.preds = pandas.DataFrame(self.preds,columns=["preds"])
 
+    def evaluate(self):
         # ToDo get R^2 func or similar for evaluation...
         # get data about predictions
+        # self.y_test.reset_index(inplace=True, drop=True)
         self.mae = tf.metrics.mean_absolute_error(y_true=self.y_test,
-                                             y_pred=self.preds.squeeze()).numpy()
+                                             y_pred=self.preds).numpy()
+        # metrics return a tf.Tensor object, so I convert to numpy-ndarray.
         mse = tf.metrics.mean_squared_error(y_true=self.y_test,
-                                            y_pred=self.preds.squeeze()).numpy()
+                                            y_pred=self.preds).numpy()
         # ToDo implement Classification accuracy
         if "classificationProblem":
             acc = tf.metrics.Accuracy()
@@ -197,20 +201,22 @@ class sample_NN():
             print("accuracy: ",acc.result().numpy())
         # acc = tf.metrics.RootMeanSquaredError()
         # acc.update_state(self.y_test, self.preds.squeeze())
-        # ToDo Denormalize back the metrics as well
-        # print("mae:", self.mae, "\n",
-        #       "mse:", mse,"\n")
+        # ToDo Denormalize back the metrics with y_train features
+        #  ONLY if OwnPrediction was given
 
-    def save_model(self, be_mae= 1):
+        print("mae:", self.mae, "\n",
+              "mse:", mse,"\n")
+
+    def  save_model(self, be_mae= 1):
         if self.mae <= be_mae:
             self.model.save(f"{self.model_name}.h5")
 
 if __name__ == "__main__":
-    pred_x = pandas.DataFrame({"x": [i for i in range(1, 400)]})
-    pred_y = pandas.DataFrame({"y": [j**2 for j in range(1, 400)]})
+    pred_x = [] #pandas.DataFrame({"x": [i for i in range(460, 560)]})
+    pred_y = [] #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
     # type(data) = pd.Dataframe
-    data = GenerateData.genUnNormalizedData(500, type='square')
+    data = GenerateData.genUnNormalizedData(500, type='root')
 
     # NN training start time
     start = time.time()
@@ -221,8 +227,8 @@ if __name__ == "__main__":
     y = data[data.columns[-1]]
     NN.preprocessing(x,
                      y, normalize=True, features=[], OwnPred_x=pred_x, OwnPred_y=pred_y)
-    NN.split_train_test(train_split=1, shuffle=True)
-    NN.implNN(loaded_model=False, epoch=30, batch_size=5, learning_rate=0.0035, nn_type="SimpleNN", earlystop=1)
+    NN.split_train_test(train_split=0.7, shuffle=True)
+    NN.implNN(loaded_model=False, epoch=90, batch_size=5, learning_rate=0.0035, nn_type="SimpleNN", earlystop=1)
     NN.predictNN()
 
     # print("PREDS after predictions ", NN.preds)
@@ -234,9 +240,10 @@ if __name__ == "__main__":
     NN.showValLoss()
     # ToDo if features list contains the label_feature_name, automatically set is_preds_normalized to true.
     NN.postprocessing(is_preds_normalized=True)
-    # print("PREDS after postprocessing ", NN.preds)
-    print("x-train after postprocessing ", max(NN.x_train["x"]))
+    NN.evaluate()
+    # print("after postprocessing:", NN.mae)
     NN.showTrainTest(with_pred=True)
+
 
     # NN.save_model(be_mae= 99999)
     # linearPlot(data)
