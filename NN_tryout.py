@@ -18,25 +18,25 @@ class sample_NN():
         self.model_name = model_name
         self.preprocessed = False
 
-    def preprocessing(self, x, y, normalize=True,OwnPred_x=[],OwnPred_y=[] ,features=[]):
+    def preprocessing(self, x, y, normalize=True,OwnPred_x=[],OwnPred_y=[] ,features=[],label_feature_name="y"):
         # Todo implement features_x, features_y
         self.OwnPred_x = OwnPred_x.copy()
         self.OwnPred_y = OwnPred_y.copy()
         if normalize:
             self.scale_x = DataProcessing.Scaler(features=features)
             self.x = self.scale_x.normalize(x,
-                                         label_feature_name="y",
+                                         label_feature_name=label_feature_name,
                                          prediction_feature_name="preds")
 
             self.scale_y = DataProcessing.Scaler(features=features)
             self.y = self.scale_y.normalize(y,
-                                         label_feature_name="y",
+                                         label_feature_name=label_feature_name,
                                          prediction_feature_name="preds")
 
             # y_test data shouldn't be normalized but x_test (with OwnPred as well)
             # has to be normalized for model.fit method using the x_train normalizer:
             self.OwnPred_x = self.scale_x.normalize(self.OwnPred_x,
-                                            label_feature_name="y",
+                                            label_feature_name=label_feature_name,
                                             prediction_feature_name="preds")
             self.preprocessed = True
         else:
@@ -109,9 +109,9 @@ class sample_NN():
     def showTrainTest(self,with_pred=None):
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
-            plt.scatter(self.x_test, self.preds, c='r', label='Predicted data')
-        plt.scatter(self.x_train, self.y_train, c='b', label='Training data')
-        plt.scatter(self.x_test, self.y_test, c='g', label='Testing data')
+            plt.scatter(self.x_test["TanOra"], self.preds, c='r', label='Predicted data')
+        plt.scatter(self.x_train["TanOra"], self.y_train, c='b', label='Training data')
+        plt.scatter(self.x_test["TanOra"], self.y_test, c='g', label='Testing data')
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.legend()
         plt.show()
@@ -216,19 +216,19 @@ if __name__ == "__main__":
     pred_y = [] #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
     # type(data) = pd.Dataframe
-    data = GenerateData.genUnNormalizedData(500, type='root')
+    data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx") #GenerateData.genUnNormalizedData(500, type='square')
 
     # NN training start time
     start = time.time()
 
     NN = sample_NN("TryoutBasic")
     # Preprocess
-    x = data[data.columns[:-1]]
-    y = data[data.columns[-1]]
+    x = data[data.columns[:-2]]
+    y = data[data.columns[-2]]
     NN.preprocessing(x,
-                     y, normalize=True, features=[], OwnPred_x=pred_x, OwnPred_y=pred_y)
+                     y, normalize=True, features=[], OwnPred_x=pred_x, OwnPred_y=pred_y, label_feature_name="Teljesitmeny")
     NN.split_train_test(train_split=0.7, shuffle=True)
-    NN.implNN(loaded_model=False, epoch=90, batch_size=5, learning_rate=0.0035, nn_type="SimpleNN", earlystop=1)
+    NN.implNN(loaded_model=False, epoch=50, batch_size=5, learning_rate=0.0035, nn_type="SimpleNN", earlystop=1)
     NN.predictNN()
 
     # print("PREDS after predictions ", NN.preds)
@@ -238,7 +238,6 @@ if __name__ == "__main__":
           str(round(runtime, 4)), "seconds."
           )
     NN.showValLoss()
-    # ToDo if features list contains the label_feature_name, automatically set is_preds_normalized to true.
     NN.postprocessing(is_preds_normalized=True)
     NN.evaluate()
     # print("after postprocessing:", NN.mae)
