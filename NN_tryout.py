@@ -20,6 +20,7 @@ class sample_NN():
 
     def preprocessing(self, x, y, normalize=True,OwnPred_x=[],OwnPred_y=[] ,features=[],label_feature_name="y"):
         # Todo implement features_x, features_y
+        #  .reset_index(inplace=True, drop=True) somewhere needed for handling output dataframe record inorder.
         self.OwnPred_x = OwnPred_x.copy()
         self.OwnPred_y = OwnPred_y.copy()
         if normalize:
@@ -33,8 +34,7 @@ class sample_NN():
                                          label_feature_name=label_feature_name,
                                          prediction_feature_name="preds")
 
-            # y_test data shouldn't be normalized but x_test (with OwnPred as well)
-            # has to be normalized for model.fit method using the x_train normalizer:
+            # Is it right normalizing Ownpred with x_train?
             self.OwnPred_x = self.scale_x.normalize(self.OwnPred_x,
                                             label_feature_name=label_feature_name,
                                             prediction_feature_name="preds")
@@ -111,7 +111,8 @@ class sample_NN():
         if with_pred:
             plt.scatter(self.x_test["TanOra"], self.preds, c='r', label='Predicted data')
         plt.scatter(self.x_train["TanOra"], self.y_train, c='b', label='Training data')
-        plt.scatter(self.x_test["TanOra"], self.y_test, c='g', label='Testing data')
+        if len(self.OwnPred_x) == 0:
+            plt.scatter(self.x_test["TanOra"], self.y_test, c='g', label='Testing data')
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.legend()
         plt.show()
@@ -183,40 +184,42 @@ class sample_NN():
 
     def predictNN(self):
         self.preds = self.model.predict([self.x_test])
-        self.preds = pandas.DataFrame(self.preds,columns=["preds"])
+        self.preds = pandas.DataFrame(self.preds, columns=["preds"])
 
     def evaluate(self):
         # ToDo get R^2 func or similar for evaluation...
-        # get data about predictions
-        # self.y_test.reset_index(inplace=True, drop=True)
-        self.mae = tf.metrics.mean_absolute_error(y_true=self.y_test,
-                                             y_pred=self.preds).numpy()
-        # metrics return a tf.Tensor object, so I convert to numpy-ndarray.
-        mse = tf.metrics.mean_squared_error(y_true=self.y_test,
-                                            y_pred=self.preds).numpy()
-        # ToDo implement Classification accuracy
-        if "classificationProblem":
-            acc = tf.metrics.Accuracy()
-            acc.update_state([[3.1,45]], [[3.0,45 ]])
-            print("accuracy: ",acc.result().numpy())
-        # acc = tf.metrics.RootMeanSquaredError()
-        # acc.update_state(self.y_test, self.preds.squeeze())
-        # ToDo Denormalize back the metrics with y_train features
-        #  ONLY if OwnPrediction was given
+        if len(self.y_test) > 0:
+            # get data about predictions
+            # self.y_test.reset_index(inplace=True, drop=True)
+            self.mae = tf.metrics.mean_absolute_error(y_true=self.y_test,
+                                                 y_pred=self.preds).numpy()
+            # metrics return a tf.Tensor object, so I convert to numpy-ndarray.
+            mse = tf.metrics.mean_squared_error(y_true=self.y_test,
+                                                y_pred=self.preds).numpy()
+            # ToDo implement Classification accuracy
+            if "classificationProblem":
+                acc = tf.metrics.Accuracy()
+                acc.update_state([[3.1,45]], [[3.0,45 ]])
+                print("accuracy: ",acc.result().numpy())
+            # acc = tf.metrics.RootMeanSquaredError()
+            # acc.update_state(self.y_test, self.preds.squeeze())
+            # ToDo Denormalize back the metrics with y_train features
+            #  ONLY if OwnPrediction was given
 
-        print("mae:", self.mae, "\n",
-              "mse:", mse,"\n")
+            print("mae:", self.mae, "\n",
+                  "mse:", mse,"\n")
 
-    def  save_model(self, be_mae= 1):
-        if self.mae <= be_mae:
-            self.model.save(f"{self.model_name}.h5")
+    def save_model(self):
+        self.model.save(f"{self.model_name}.h5")
 
 if __name__ == "__main__":
-    pred_x = [] #pandas.DataFrame({"x": [i for i in range(460, 560)]})
-    pred_y = [] #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
-
     # type(data) = pd.Dataframe
-    data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx") #GenerateData.genUnNormalizedData(500, type='square')
+    data = pandas.read_excel(
+        "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")  # GenerateData.genUnNormalizedData(500, type='square')
+    # own_pred_data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
+
+    pred_x = [] # own_pred_data.iloc[::, :-2]
+    pred_y = [] #own_pred_data.iloc[::,-2]  #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
     # NN training start time
     start = time.time()
@@ -231,7 +234,6 @@ if __name__ == "__main__":
     NN.implNN(loaded_model=False, epoch=50, batch_size=5, learning_rate=0.0035, nn_type="SimpleNN", earlystop=1)
     NN.predictNN()
 
-    # print("PREDS after predictions ", NN.preds)
     end = time.time()
     runtime = end-start
     print("Training Time:",
@@ -240,9 +242,13 @@ if __name__ == "__main__":
     NN.showValLoss()
     NN.postprocessing(is_preds_normalized=True)
     NN.evaluate()
-    # print("after postprocessing:", NN.mae)
     NN.showTrainTest(with_pred=True)
 
 
+    # shuffle order is right for the showTrainTest method, but using pandas.concat,
+    # the indexes are applied, so x_test,y_test must be resetted.
+    output = pandas.concat([NN.x_test.reset_index(inplace=False, drop=False),
+                            NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
+
+    output.to_csv("result.csv")
     # NN.save_model(be_mae= 99999)
-    # linearPlot(data)
