@@ -12,10 +12,16 @@ df_nopred = pd.DataFrame({"x" : [40,234,452,1000 ],
 
 class Scaler:
     def __init__(self, features=[]):
+        # if features is an empty array, (pandas df also compatible)
+        # than all features going to be normalized
         self.features = features
+        # this boolean insures to only apply the normalization/denormalization
+        # of the instance and do not begin with a fresh start when either method is called.
+        # used: when applying to OwnPred_x the same x_train feature-scales.
         self.already_constructed = False
 
     def normalize(self, dict_df, label_feature_name="y", prediction_feature_name="preds", to_dict=False):
+
         df = pd.DataFrame(dict_df)
         result = df.copy()
         self.prediction_feature_name = prediction_feature_name
@@ -36,6 +42,8 @@ class Scaler:
             else:
                 max_value = df[feature_name].max()
                 min_value = df[feature_name].min()
+
+            # Todo give other methods as well, for handling outlying
             result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
             # if feature_name == label: create an additional one for preds.
             if feature_name == label_feature_name:

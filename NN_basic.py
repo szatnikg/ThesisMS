@@ -45,7 +45,8 @@ class sample_NN():
 
     def postprocessing(self, is_preds_normalized=True):
         if not self.preprocessed:
-            raise ReferenceError("First call the preprocessing method with normalize=True")
+            return
+            # raise ReferenceError("First call the preprocessing method with normalize=True")
 
         self.x = self.scale_x.denormalize(self.x, is_preds_normalized=False)
         self.y = self.scale_y.denormalize(self.y, is_preds_normalized=False)
@@ -95,21 +96,26 @@ class sample_NN():
         hist = pd.DataFrame(self.history_model.history)
         #print(self.history_model.history["mse"][0])
         hist['epoch'] = self.history_model.epoch
-        plt.plot(self.history_model.history['loss'], label='training_loss')
-        plt.plot(self.history_model.history['val_loss'], label='validation_loss')
+        if self.classification:
+            train_loss = 'acc'
+            val_loss = 'val_acc'
+        else:
+            train_loss = 'loss'
+            val_loss = 'val_loss'
+        label_train = 'training_' + train_loss
+        label_val = 'validation_' + train_loss
+        plt.plot(self.history_model.history['loss'], label=label_train)
+        plt.plot(self.history_model.history['val_loss'], label=label_val)
         plt.xlabel('Epoch')
         plt.ylabel('Error [unit]')
         plt.legend()
         plt.grid(True)
         plt.show()
 
-    def soft_acc(self):
-        return tf.keras.backend.mean(tf.keras.backend.equal(tf.keras.backend.round(self.y_test), tf.keras.backend.round(self.preds.squeeze())))
-
     def showTrainTest(self, with_pred=None, column_name="x"):
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
-            plt.scatter(self.x_test[column_name], self.preds, c='r', label='Predicted data')
+            plt.scatter(self.x_test[column_name], self.preds["correct_output"], c='r', label='Predicted data')
         plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data')
         if len(self.OwnPred_x) == 0:
             plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data')
@@ -120,9 +126,9 @@ class sample_NN():
         plt.show()
         print("preds:",self.preds,"\n","test: ",self.y_test)
 
-    def build_model(self, nn_type="simple", loaded_model=False):
+    def build_model(self, nn_type="simple", loaded_model=False, classification=False):
         # building a NN from scratch or loading an already existing model
-
+        self.classification = classification
         if loaded_model:
             # It can be used to reconstruct the model identically.
             self.model = keras.models.load_model(f"{self.model_name}.h5")
@@ -133,13 +139,17 @@ class sample_NN():
 
         if nn_type=="simple":
 
-            #specifying NN architecture
+            # constructing NN architecture
             input_lay = keras.Input(shape=(self.x_train.shape[1],))
             first_lay = keras.layers.Dense(16, activation=keras.activations.relu,
                 kernel_initializer=keras.initializers.random_normal)
             hidden_lays = keras.layers.Dense(32, activation=keras.activations.relu,
                 kernel_initializer=keras.initializers.random_normal)
-            output_lay = keras.layers.Dense(1, input_shape=(1,), activation="linear")
+
+            if self.classification:
+                output_lay = keras.layers.Dense(1, activation="sigmoid")
+            else:
+                output_lay = keras.layers.Dense(1, input_shape=(1,), activation="linear")
 
             # building the NN network
             self.model = keras.Sequential()
@@ -150,15 +160,15 @@ class sample_NN():
             self.model.add(hidden_lays)
             self.model.add(output_lay)
 
-            print(self.model.summary())
-            print("weights: \n",self.model.weights)
+            # print(self.model.summary())
+            # print("weights: \n",self.model.weights)
 
         elif nn_type=="SimpleRNN":
             self.model = keras.Sequential()
             self.model.add(keras.layers.SimpleRNN(20, return_sequences=True, input_shape=(1,)))
             self.model.add.keras.layers.Dense(1)
 
-    def network_specs(self,  epoch=90, batch_size=1, learning_rate=0.2, earlystop=0):
+    def network_specs(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.2, earlystop=0, metrics=["mse"]):
         self.epoch = epoch
 
         # single_feature_normalizer = tf.keras.layers.Normalization(input_shape=[1,], axis=None)
@@ -169,9 +179,9 @@ class sample_NN():
             initial_learning_rate=learning_rate,
             decay_steps=10000,
             decay_rate=0.9)
-        self.model.compile(loss=keras.losses.mse,  # mae stands for mean absolute error
+        self.model.compile(loss=loss,  # mae stands for mean absolute error
                       optimizer=keras.optimizers.Adam(learning_rate=lr_schedule)  # stochastic GD
-                      ,metrics=["mse"]) # metrics=['accuracy']
+                      ,metrics=metrics) # metrics=['accuracy']
 
         # training the model
         if earlystop:
@@ -197,11 +207,13 @@ class sample_NN():
             self.es = self.epoch
         return
 
-    def predictNN(self):
+    def predictNN(self, pred_columns=["preds"] ):
         self.preds = self.model.predict([self.x_test])
-        self.preds = pandas.DataFrame(self.preds, columns=["preds"])
+        self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
 
     def evaluate(self):
+        # This has to be called, after postprocessing (denormalization),
+        # to match the y_test data with the (previously normalized, now denormalized) preds-data
         # ToDo get R^2 func or similar for evaluation...
         if len(self.y_test) > 0:
             # get data about predictions
@@ -212,17 +224,18 @@ class sample_NN():
             mse = metrics.mean_squared_error(y_true=self.y_test,
                                                 y_pred=self.preds).numpy()
             # ToDo implement Classification accuracy
-            if "classificationProblem":
+            if self.classification:
                 acc = metrics.Accuracy()
-                acc.update_state([[3.1,45]], [[3.0,45 ]])
+                self.preds.loc[round(self.preds["preds"]) == 1 , 'correct_output'] = 1
+                self.preds.loc[round(self.preds["preds"]) == 0, 'correct_output'] = 0
+                acc_input = pd.DataFrame({"preds": self.preds["correct_output"]})
+                acc.update_state(self.y_test, acc_input)
                 print("accuracy: ",acc.result().numpy())
             # acc = metrics.RootMeanSquaredError()
             # acc.update_state(self.y_test, self.preds.squeeze())
-            # ToDo Denormalize back the metrics with y_train features
-            #  ONLY if OwnPrediction was given
 
-            print("mae:", self.mae, "\n",
-                  "mse:", mse,"\n")
+            # print("mae:", self.mae, "\n",
+            #       "mse:", mse,"\n")
 
     def save_model(self):
         self.model.save(f"{self.model_name}.h5")
@@ -230,7 +243,8 @@ class sample_NN():
 if __name__ == "__main__":
     # type(data) = pd.Dataframe
     data = pandas.read_excel(
-        "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")  # GenerateData.genUnNormalizedData(500, type='square')
+        "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+    # GenerateData.genUnNormalizedData(500, type='square')
     # own_pred_data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
@@ -241,20 +255,24 @@ if __name__ == "__main__":
     NN = sample_NN("TryoutBasic")
     # Preprocess
     x = data[data.columns[:-2]]
-    y = data[data.columns[-2]]
+    y = data[data.columns[-1]]
     NN.preprocessing(x,
                      y, normalize=True, features=[],
                      OwnPred_x=pred_x, OwnPred_y=pred_y,
-                     label_feature_name="Teljesitmeny")
+                     label_feature_name="Teljesitmeny_jegy")
     NN.split_train_test(train_split=0.7, shuffle=True)
 
-    NN.build_model()
-    NN.network_specs(epoch=50, batch_size=5, learning_rate=0.0035, earlystop=20)
+    NN.build_model(classification=True)
+    NN.network_specs(epoch=100,
+                     batch_size=50,
+                     learning_rate=0.0035,
+                     earlystop=40,
+                     metrics=["accuracy"],
+                     loss="binary_crossentropy")
     print("Training Time:",
           str(round(NN.runtime, 4)), "seconds."
           )
     NN.predictNN()
-
     NN.showValLoss()
     NN.postprocessing(is_preds_normalized=True)
     NN.evaluate()
