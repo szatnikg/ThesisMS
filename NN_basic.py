@@ -98,10 +98,8 @@ class sample_NN():
         hist['epoch'] = self.history_model.epoch
         if self.classification:
             train_loss = 'acc'
-            val_loss = 'val_acc'
         else:
             train_loss = 'loss'
-            val_loss = 'val_loss'
         label_train = 'training_' + train_loss
         label_val = 'validation_' + train_loss
         plt.plot(self.history_model.history['loss'], label=label_train)
@@ -115,7 +113,7 @@ class sample_NN():
     def showTrainTest(self, with_pred=None, column_name="x"):
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
-            plt.scatter(self.x_test[column_name], self.preds["correct_output"], c='r', label='Predicted data')
+            plt.scatter(self.x_test[column_name], self.preds["preds"], c='r', label='Predicted data')
         plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data')
         if len(self.OwnPred_x) == 0:
             plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data')
@@ -129,18 +127,19 @@ class sample_NN():
     def build_model(self, nn_type="simple", loaded_model=False, classification=False):
         # building a NN from scratch or loading an already existing model
         self.classification = classification
-        if loaded_model:
+        self.loaded_model = loaded_model
+        if self.loaded_model:
             # It can be used to reconstruct the model identically.
             self.model = keras.models.load_model(f"{self.model_name}.h5")
 
-            print([layer2.name for layer2 in self.model.layers])
             print("loaded model summary: ",self.model.summary())
             return
 
+        input_lay = keras.Input(shape=(self.x_train.shape[1],))
         if nn_type=="simple":
 
             # constructing NN architecture
-            input_lay = keras.Input(shape=(self.x_train.shape[1],))
+
             first_lay = keras.layers.Dense(16, activation=keras.activations.relu,
                 kernel_initializer=keras.initializers.random_normal)
             hidden_lays = keras.layers.Dense(32, activation=keras.activations.relu,
@@ -163,54 +162,58 @@ class sample_NN():
             # print(self.model.summary())
             # print("weights: \n",self.model.weights)
 
-        elif nn_type=="SimpleRNN":
+        elif nn_type=="simpleRNN":
             self.model = keras.Sequential()
-            self.model.add(keras.layers.SimpleRNN(20, return_sequences=True, input_shape=(1,)))
-            self.model.add.keras.layers.Dense(1)
+            self.model.add(keras.layers.LSTM(20, input_shape=(1, self.x_train.shape[1]), return_sequences=False))
+            self.model.add(keras.layers.Dense(1, input_shape=(1,), activation="linear"))
 
-    def network_specs(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.2, earlystop=0, metrics=["mse"]):
+    def network_specs(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.2,
+                      earlystop=0, metrics=["mse"], further_training=True):
         self.epoch = epoch
-
+        self.es = self.epoch
         # single_feature_normalizer = tf.keras.layers.Normalization(input_shape=[1,], axis=None)
         # single_feature_normalizer.adapt(self.x_test)
+        if not self.loaded_model:
+            # learning schedule for decaying learning_rate
+            lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+                initial_learning_rate=learning_rate,
+                decay_steps=10000,
+                decay_rate=0.9)
+            self.model.compile(loss=loss,  # mae stands for mean absolute error
+                          optimizer=keras.optimizers.Adam(learning_rate=lr_schedule)  # stochastic GD
+                          ,metrics=metrics) # metrics=['accuracy']
+        if further_training:
+            # training the model
+            if earlystop:
+                EarlyStop = keras.callbacks.EarlyStopping(patience=earlystop)
+            else: EarlyStop = []
 
-        # learning schedule for decaying learning_rate
-        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-            initial_learning_rate=learning_rate,
-            decay_steps=10000,
-            decay_rate=0.9)
-        self.model.compile(loss=loss,  # mae stands for mean absolute error
-                      optimizer=keras.optimizers.Adam(learning_rate=lr_schedule)  # stochastic GD
-                      ,metrics=metrics) # metrics=['accuracy']
+            # NN training start time
+            start = time.time()
+            self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
+                           epochs=self.epoch,
+                           batch_size=batch_size,verbose=0,
+                           validation_split=0.2,
+                           callbacks=[EarlyStop])
+            ## NN training time stop
+            end = time.time()
+            self.runtime = end - start
+            self.showValLoss()
+            if earlystop:
+                self.es = EarlyStop.stopped_epoch
+                if self.es != 0:
+                    print("Stopped at epoch number:" ,str(self.es))
+            else:
+                self.es = self.epoch
+            return
 
-        # training the model
-        if earlystop:
-            EarlyStop = keras.callbacks.EarlyStopping(patience=earlystop)
-        else: EarlyStop = []
-
-        # NN training start time
-        start = time.time()
-        self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
-                       epochs=self.epoch,
-                       batch_size=batch_size,verbose=0,
-                       validation_split=0.2,
-                       callbacks=[EarlyStop])
-        ## NN training time stop
-        end = time.time()
-        self.runtime = end - start
-
-        if earlystop:
-            self.es = EarlyStop.stopped_epoch
-            if self.es != 0:
-                print("Stopped at epoch number:" ,str(self.es))
-        else:
-            self.es = self.epoch
-        return
-
-    def predictNN(self, pred_columns=["preds"] ):
+    def predictNN(self, pred_columns=["preds"]):
         self.preds = self.model.predict([self.x_test])
-        self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
-
+        try:
+            self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
+        except:
+            numpy.squeeze(self.preds, axis=2)
+            self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
     def evaluate(self):
         # This has to be called, after postprocessing (denormalization),
         # to match the y_test data with the (previously normalized, now denormalized) preds-data
@@ -223,7 +226,6 @@ class sample_NN():
             # metrics return a tf.Tensor object, so I convert to numpy-ndarray.
             mse = metrics.mean_squared_error(y_true=self.y_test,
                                                 y_pred=self.preds).numpy()
-            # ToDo implement Classification accuracy
             if self.classification:
                 acc = metrics.Accuracy()
                 self.preds.loc[round(self.preds["preds"]) == 1 , 'correct_output'] = 1
@@ -242,9 +244,9 @@ class sample_NN():
 
 if __name__ == "__main__":
     # type(data) = pd.Dataframe
-    data = pandas.read_excel(
-        "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
-    # GenerateData.genUnNormalizedData(500, type='square')
+    # data = pandas.read_excel(
+    #     "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+    data = GenerateData.genSinwawe(1,1000)
     # own_pred_data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
@@ -252,37 +254,40 @@ if __name__ == "__main__":
 
 
 
-    NN = sample_NN("TryoutBasic")
+    NN = sample_NN("sinus_model")
     # Preprocess
-    x = data[data.columns[:-2]]
+    x = data[data.columns[:-1]]
     y = data[data.columns[-1]]
     NN.preprocessing(x,
                      y, normalize=True, features=[],
                      OwnPred_x=pred_x, OwnPred_y=pred_y,
-                     label_feature_name="Teljesitmeny_jegy")
+                     label_feature_name="y")
     NN.split_train_test(train_split=0.7, shuffle=True)
 
-    NN.build_model(classification=True)
-    NN.network_specs(epoch=100,
-                     batch_size=50,
-                     learning_rate=0.0035,
-                     earlystop=40,
-                     metrics=["accuracy"],
-                     loss="binary_crossentropy")
-    print("Training Time:",
-          str(round(NN.runtime, 4)), "seconds."
-          )
+    NN.build_model(
+                loaded_model=False,
+                classification=False,
+                nn_type="simpleRNN")
+    NN.network_specs(epoch=300,
+                     batch_size=5,
+                     learning_rate=0.0025,
+                     earlystop=230,
+                     metrics=["mse"],
+                     loss="mse",
+                     further_training=True)
+    # print("Training Time:",
+    #       str(round(NN.runtime, 4)), "seconds."
+    #       )
     NN.predictNN()
-    NN.showValLoss()
     NN.postprocessing(is_preds_normalized=True)
     NN.evaluate()
     NN.showTrainTest(with_pred=True, column_name=data.columns[0])
 
-
+    # This applies to only OwnPred usage.
     # shuffle order is right for the showTrainTest method, but using pandas.concat,
     # the indexes are applied, so x_test,y_test must be resetted.
-    output = pandas.concat([NN.x_test.reset_index(inplace=False, drop=False),
-                            NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
-
-    output.to_csv("result.csv")
-    # NN.save_model(be_mae= 99999)
+    # output = pandas.concat([NN.x_test.reset_index(inplace=False, drop=False),
+    #                         NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
+    #
+    # output.to_csv("result.csv")
+    NN.save_model()

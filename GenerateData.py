@@ -1,4 +1,5 @@
 import math, random
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -24,19 +25,19 @@ def genNormalizedData(data_size, type="linear"):
     my_data["y"] = data_y
     return pd.DataFrame(my_data)
 
-def genUnNormalizedData(data_size, type="linear"):
+def genUnNormalizedData(data_size_from, data_size_to, type="linear", step=200):
     import DataProcessing
     # creating data
-    my_data = {"x": [j for j in range(1, data_size)]
+    my_data = {"x": [j for j in range(data_size_from, data_size_to,step)]
                } #
     data_y= []
-    for k in range(1, data_size):
+    for k in range(data_size_from, data_size_to,step):
         number = k
-        addition = random.choice([2,4,9,44])
+        addition = random.choice([0.2,0.04,0.09,0.44])
         if type =="linear":
             data_y.append(number* 1.3 + addition)
         elif type =="square":
-            data_y.append((number ** (2)) +addition)
+            data_y.append((number ** (3)) +addition)
         elif type == "root":
             data_y.append(math.sqrt(number) * 3.2 + addition)
         elif type =="polinomial":
@@ -46,6 +47,13 @@ def genUnNormalizedData(data_size, type="linear"):
     # normalizing it with min-max scaling
     my_data["y"] = data_y
     return pd.DataFrame(my_data)
+
+def genSinwawe(cycles, resolution):
+
+    length = np.pi * 2 * cycles
+    x_val = np.arange(0, length, length / resolution)
+    my_wave = np.sin(np.arange(0, length, length / resolution))
+    return pd.concat([pd.DataFrame(x_val, columns= ["x"]),(pd.DataFrame(my_wave, columns= ["y"]))], axis = 1)
 
 
 def genComplexData(data_size):
@@ -81,7 +89,9 @@ def linearPlot(my_data):
 if __name__ == "__main__":
     import DataProcessing
     scale = DataProcessing.Scaler(features=[])
-    szamok = genUnNormalizedData(700,type="else")
+    szamok = genUnNormalizedData(-1,1,type="else")
+    szamok = genSinwawe(0.5,100)
+
     normaltSzamok = scale.normalize(szamok)
 
     linearPlot(normaltSzamok)

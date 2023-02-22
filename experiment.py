@@ -16,8 +16,8 @@ my_df2 = my_df2.iloc[shuffler]
 
 # my_df.reset_index(inplace=True, drop=True)
 # print(my_df.columns.tolist())
-print(my_df2)
-
-plt.scatter(my_df2, my_df["x"])
-plt.legend(my_df2.columns)
-plt.show()
+# print(my_df2)
+#
+# plt.scatter(my_df2, my_df["x"])
+# plt.legend(my_df2.columns)
+# plt.show()
