@@ -29,7 +29,6 @@ class Scaler:
         if not len(self.features):
             loop_container = df.columns
         else: loop_container = self.features
-
         if not self.already_constructed:
             self.feature_all_max, self.feature_all_min = {}, {}
 
@@ -43,7 +42,7 @@ class Scaler:
                 max_value = df[feature_name].max()
                 min_value = df[feature_name].min()
 
-            # Todo give other methods as well, for handling outlying
+            # Todo give other methods as well, for handling outlying data
             result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
             # if feature_name == label: create an additional one for preds.
             if feature_name == label_feature_name:
