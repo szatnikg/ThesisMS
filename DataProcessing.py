@@ -1,14 +1,4 @@
 import pandas as pd
-df = pd.DataFrame({"x" : [40,234,452,1000 ],
-                   "y": [31,41,411,3300],
-                   "preds": [3103,34,1,3410]} )
-
-df_nopred = pd.DataFrame({"x" : [40,234,452,1000 ],
-                   "y": [31,41,411,3300],
-                   } )
-# print(df.iloc[:,-1])
-# print(df.columns[:-1])
-
 
 class Scaler:
     def __init__(self, features=[]):
@@ -83,6 +73,17 @@ class Scaler:
             return original
 
 if __name__ == "__main__":
+    df = pd.DataFrame({"x": [40, 234, 452, 1000],
+                       "y": [31, 41, 411, 3300],
+                       "preds": [3103, 34, 1, 3410]})
+
+    df_nopred = pd.DataFrame({"x": [40, 234, 452, 1000],
+                              "y": [31, 41, 411, 3300],
+                              })
+    # print(df.iloc[:,-1])
+    # print(df.columns[:-1])
+
+
     scale = Scaler(df_nopred.columns[::])
     a = scale.normalize(df_nopred)
     a["preds"] = [0.9099442651804048, 0.009680258140217073, 0.0, 1.1]

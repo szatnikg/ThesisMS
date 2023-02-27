@@ -12,9 +12,11 @@ import time
 
 class InputProcessing():
 
-    def __init__(self, x, y,
+    def __init__(self, x=[], y=[],
                  OwnPred_x=[], OwnPred_y=[], shuffle=False):
         # creating class variables
+        if len(x) == 0 or len(y) == 0:
+            raise ValueError("Provide x or y value!")
         self.OwnPred_x = OwnPred_x.copy()
         self.OwnPred_y = OwnPred_y.copy()
         self.x = x
@@ -23,6 +25,7 @@ class InputProcessing():
         self.shuffle = shuffle
 
     def normalize_data(self, features= [], label_feature_name="y"):
+        # normalizing data by choosen features respectively
 
         self.scale_x = DataProcessing.Scaler(features=features)
         self.x = self.scale_x.normalize(self.x,
@@ -42,6 +45,7 @@ class InputProcessing():
         return self.x, self.y, self.OwnPred_x, self.OwnPred_y
 
     def denormalize_data(self, x=None, y=None, OwnPred_x=None, OwnPred_y=None , preds=None, is_preds_normalized=True):
+        # denormalizing features by the chosen features in method "normalize_data"
 
         if not self.preprocessed:
             return
@@ -67,22 +71,53 @@ class InputProcessing():
         # separating preds-data due to unequal record number with original dataset
         if is_preds_normalized:
             self.preds = self.scale_y.denormalize(self.preds, is_preds_normalized=is_preds_normalized)
+        self.splitting()
 
-        # comment out for now.
-        # self.splitting()
         return self.x, self.y, self.OwnPred_x, self.OwnPred_y, self.preds
 
+    def split_train_test(self, train_split=0.8):
+        self.train_split = train_split
+
+        if self.shuffle:
+            self.shuffler = np.random.permutation(len(self.x))
+            self.x = self.x.iloc[self.shuffler]
+            self.y = self.y.iloc[self.shuffler]
+
+        self.splitting()
+        # print(len(self.x_train), len(self.y_train),":train dataset\n",
+        #       len(self.x_test), len(self.y_test),":test dataset")
+        return self.x_train, self.y_train, self.x_test, self.y_test
+
     def splitting(self):
-        slicer = ceil((len(self.x) * self.train_split))
+        slicer = int((len(self.x) * self.train_split))
         self.x_train = self.x[:slicer]
         self.y_train = self.y[:slicer]
 
         if len(self.OwnPred_x) == 0:
-            self.x_test = self.x[slicer-1:]
-            self.y_test = self.y[slicer-1:]
+            self.x_test = self.x[slicer:]
+            self.y_test = self.y[slicer:]
         else:
             self.x_test = self.OwnPred_x
             self.y_test = self.OwnPred_y
+
+    def convert_to_array(self, n_features=1):
+        data_list = [self.x_train, self.x_test, self.y_train, self.y_test]
+
+        converted_list = []
+        counter = 0
+        for elem in data_list:
+            elem = elem.to_numpy()
+            if counter < 2: elem = elem.reshape(len(elem), n_features)
+            else: elem = elem.reshape(len(elem), 1)
+            converted_list.append(elem)
+            counter += 1
+
+        self.x_train, self.x_test,\
+        self.y_train, self.y_test = converted_list[0], converted_list[1], \
+                                    converted_list[2], converted_list[3]
+
+        return self.x_train, self.x_test, self.y_train, self.y_test
+
 
     @staticmethod
     def handle_timeseries_deviation(np_range):
