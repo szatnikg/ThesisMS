@@ -138,21 +138,6 @@ class Recurrent_NN():
         self.model_name = model_name
         self.preprocessed = False
 
-    def split_train_test(self, shuffle=True, train_split=0.8):
-        self.shuffle = shuffle
-        self.train_split = train_split
-
-        if shuffle:
-            self.shuffler = np.random.permutation(len(self.x))
-            self.x = self.x.iloc[self.shuffler]
-            self.y = self.y.iloc[self.shuffler]
-
-
-        self.splitting()
-        print(len(self.x_train), len(self.y_train),":train dataset\n",
-              len(self.x_test), len(self.y_test),":test dataset")
-        return
-
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
         #print(self.history_model.history["mse"][0])
