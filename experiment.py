@@ -8,7 +8,7 @@ from NN_recurrent import InputProcessing
 
 
 from GenerateData import genSinwawe
-data = genSinwawe(0.5, 800)
+data = genSinwawe(12, 1300)
 
 # data = {"x": [i for i in range(500)],
 #         "y": [j**2 for j in range(500)]}
@@ -25,7 +25,7 @@ y_columns = [col for col in y_columns]
 
 
 n_features = len(x_columns)
-n_input = 10
+n_input = 6
 batch_size = 10
 processer = InputProcessing(data[x_columns], data[y_columns], shuffle=False)
 processer.normalize_data(features=[])
@@ -44,6 +44,7 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from keras.preprocessing.sequence import TimeseriesGenerator
 from tensorflow import data,keras
+
 
 
 """ --------------------------------------------------------"""
@@ -76,26 +77,29 @@ fit_data = keras.utils.timeseries_dataset_from_array(
 
 # define model
 model = Sequential()
-model.add(LSTM(60, activation='relu', return_sequences=True, input_shape=(n_input, n_features)))
-model.add(LSTM(60, activation='relu', return_sequences=False, input_shape=(n_input, n_features)))
+model.add(LSTM(30, activation='relu', return_sequences=True, input_shape=(None, n_features)))
+model.add(LSTM(30, return_sequences=True))
+
+model.add(LSTM(30, activation='relu', return_sequences=False))
 
 model.add(Dense(1))
 model.compile(optimizer='adam', loss='mse')
 # fit model
 # print(processer.x_test.shape)
 # a=b=a
-model.fit(fit_data, epochs=300, verbose=0, shuffle=True)
-# Model was constructed with shape (None, 4, 2) -- (len(x_test), timestamps_in_sequence, features)
-print("x_train",processer.x_train)
-print("x_test",processer.x_test)
-preds = model.predict(pred_data, verbose=0) # processer.x_test.reshape(len(processer.x_test),n_input,n_features)
-preds = pd.DataFrame(preds, columns=["preds"])
+model = keras.models.load_model("timeseries_seasonal.h5")
+# model.fit(fit_data, epochs=300, verbose=0, shuffle=True)
 
+preds = model.predict(pred_data, verbose=0) # processer.x_test.reshape(len(processer.x_test),n_input,n_features)
+# preds = np.reshape(preds, (len(preds), n_features))
+
+preds = pd.DataFrame(preds, columns=["preds"])
+model.save("timeseries_seasonal.h5")
 a,b,c,d, preds = processer.denormalize_data(preds=preds, is_preds_normalized=True)
 
-plt.plot(processer.x_test[:len(preds)], preds, c="r", label="pred")
-plt.plot(processer.x_test, processer.y_test, c ="g",label="test")
-plt.plot(processer.x_train, processer.y_train, c ="b",label="train")
+plt.plot(processer.x_test[:len(preds)]["x"], preds, c="r", label="pred")
+plt.plot(processer.x_test["x"], processer.y_test, c ="g",label="test")
+plt.plot(processer.x_train["x"], processer.y_train, c ="b",label="train")
 plt.show()
 
 """ --------------------------------------------------------"""

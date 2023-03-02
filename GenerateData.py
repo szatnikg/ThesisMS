@@ -52,8 +52,26 @@ def genSinwawe(cycles, resolution):
 
     length = np.pi * 2 * cycles
     x_val = np.arange(0, length, length / resolution)
+    counter = 0
+    x_season = []
+    period = 1
+    for i in x_val:
+        # print("i", i)
+        # print("res", resolution / i)
+        if i+0.1 >= np.pi * 2 * period:
+            counter = 0
+            period += 1
+
+        x_season.append(counter)
+        counter += 1
+    x_season = np.array(x_season)
     my_wave = np.sin(np.arange(0, length, length / resolution))
-    return pd.concat([pd.DataFrame(x_val, columns= ["x"]),(pd.DataFrame(my_wave, columns= ["y"]))], axis = 1)
+    return pd.concat([
+                      pd.DataFrame(x_val, columns= ["x"]),
+                      (pd.DataFrame(x_season, columns=["season"])),
+                      (pd.DataFrame(my_wave, columns= ["y"]))
+                      ]
+                     , axis = 1)
 
 
 def genComplexData(data_size):
@@ -87,12 +105,16 @@ def linearPlot(my_data):
 
 
 if __name__ == "__main__":
-    import DataProcessing
-    scale = DataProcessing.Scaler(features=[])
-    szamok = genUnNormalizedData(-1, 1, type="else")
-    szamok = genSinwawe(0.5, 100)
+    df = genSinwawe(3, 100)
+    print(df)
+    linearPlot(df)
 
-    normaltSzamok = scale.normalize(szamok)
-
-    linearPlot(normaltSzamok)
-    linearPlot(scale.denormalize(normaltSzamok,is_preds_normalized=False))
+    # import DataProcessing
+    # scale = DataProcessing.Scaler(features=[])
+    # szamok = genUnNormalizedData(-1, 1, type="else")
+    # szamok = genSinwawe(0.5, 100)
+    #
+    # normaltSzamok = scale.normalize(szamok)
+    #
+    # linearPlot(normaltSzamok)
+    # linearPlot(scale.denormalize(normaltSzamok,is_preds_normalized=False))
