@@ -128,16 +128,16 @@ class Dense_NN():
         # building a NN from scratch or loading an already existing model
         self.classification = classification
         self.loaded_model = loaded_model
+        self.model = keras.Sequential()
         if self.loaded_model:
             # It can be used to reconstruct the model identically.
             self.model = keras.models.load_model(f"{self.model_name}.h5")
-
             print("loaded model summary: ",self.model.summary())
             return
 
         input_lay = keras.Input(shape=(self.x_train.shape[1],))
         # Todo find out a structure for nn_types..
-        if nn_type=="simple":
+        if nn_type=="ann":
 
             # constructing NN architecture
 
@@ -152,7 +152,6 @@ class Dense_NN():
                 output_lay = keras.layers.Dense(1, input_shape=(1,), activation="linear")
 
             # building the NN network
-            self.model = keras.Sequential()
             #self.model.add(keras.layers.Dropout(0.2, input_shape=(1,)))
             #self.model.add(keras.layers.BatchNormalization())
             self.model.add(input_lay)
@@ -160,7 +159,13 @@ class Dense_NN():
             self.model.add(hidden_lays)
             self.model.add(output_lay)
             # print("weights: \n",self.model.weights)
+        elif nn_type == "rnn":
 
+            self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True,
+                                             input_shape=(None, self.x_test.shape(1))))
+            self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True))
+            self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=False))
+            self.model.add(keras.layers.Dense(1))
 
         print(self.model.summary())
 
@@ -242,9 +247,9 @@ class Dense_NN():
 
 if __name__ == "__main__":
     # type(data) = pd.Dataframe
-    # data = pandas.read_excel(
-    #     "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
-    data = GenerateData.genSinwawe(0.5,300)
+    data = pandas.read_excel(
+        "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+    # data = GenerateData.genUnNormalizedData(1,300,type="square",step=400)
     # own_pred_data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
@@ -252,9 +257,9 @@ if __name__ == "__main__":
 
 
 
-    NN = sample_NN("sinus_model")
+    NN = Dense_NN("regression_model")
     # Preprocess
-    x = data[data.columns[:-1]]
+    x = data[data.columns[:-2]]
     y = data[data.columns[-1]]
     NN.preprocessing(x,
                      y, normalize=True, features=[],
@@ -265,7 +270,7 @@ if __name__ == "__main__":
     NN.build_model(
                 loaded_model=False,
                 classification=False,
-                nn_type="simple")
+                nn_type="ann")
     NN.network_specs(epoch=200,
                      batch_size=5,
                      learning_rate=0.0025,

@@ -6,14 +6,13 @@ import DataProcessing
 import GenerateData
 import pandas as pd
 from matplotlib import pyplot as plt
-from math import ceil
 import time
 
 
 class InputProcessing():
 
     def __init__(self, x=[], y=[],
-                 OwnPred_x=[], OwnPred_y=[], shuffle=False):
+                 OwnPred_x=[], OwnPred_y=[]):
         # creating class variables
         if len(x) == 0 or len(y) == 0:
             raise ValueError("Provide x or y value!")
@@ -22,7 +21,7 @@ class InputProcessing():
         self.x = x
         self.y = y
         self.preprocessed = False
-        self.shuffle = shuffle
+
 
     def normalize_data(self, features= [], label_feature_name="y"):
         # normalizing data by choosen features respectively
@@ -75,9 +74,9 @@ class InputProcessing():
 
         return self.x, self.y, self.OwnPred_x, self.OwnPred_y, self.preds
 
-    def split_train_test(self, train_split=0.8):
+    def split_train_test(self, train_split=0.8, shuffle=False):
         self.train_split = train_split
-
+        self.shuffle = shuffle
         if self.shuffle:
             self.shuffler = np.random.permutation(len(self.x))
             self.x = self.x.iloc[self.shuffler]
@@ -100,7 +99,8 @@ class InputProcessing():
             self.x_test = self.OwnPred_x
             self.y_test = self.OwnPred_y
 
-    def convert_to_array(self, n_features=1):
+    def convert_to_array(self):
+        n_features = len(self.x_train.columns[:-1])
         data_list = [self.x_train, self.x_test, self.y_train, self.y_test]
 
         converted_list = []
@@ -118,6 +118,22 @@ class InputProcessing():
 
         return self.x_train, self.x_test, self.y_train, self.y_test
 
+    def call_convert_to_timeseries(self, sequence_length, batch_size):
+
+        self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=sequence_length, batch_size=batch_size)
+        self.pred_data = self.convert_to_timeseries(self.preds, target=None)
+
+    @staticmethod
+    def convert_to_timeseries(data, target=None, sequence_length=1, batch_size=1):
+
+        output = keras.utils.timeseries_dataset_from_array(
+            data=data,
+            targets=target,
+            sequence_length=sequence_length,
+            sequence_stride=1,
+            shuffle=False,
+            batch_size=batch_size)
+        return output
 
     @staticmethod
     def handle_timeseries_deviation(np_range):
@@ -132,11 +148,15 @@ class InputProcessing():
 
 
 
-class Recurrent_NN():
+class RecurrentNN(InputProcessing):
 
-    def __init__(self, model_name):
+    def __init__(self, model_name,
+                 x=[], y=[],
+                 OwnPred_x=[], OwnPred_y=[]):
+
+        self.processer = InputProcessing.__init__(self, x=x, y=y,
+                                                  OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y,)
         self.model_name = model_name
-        self.preprocessed = False
 
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
@@ -159,7 +179,8 @@ class Recurrent_NN():
     def showTrainTest(self, with_pred=None, column_name="x"):
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
-            plt.scatter(self.x_test[column_name], self.preds["preds"], c='r', label='Predicted data')
+            # this is different from ANN
+            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data')
         plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data')
         if len(self.OwnPred_x) == 0:
             plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data')
@@ -172,16 +193,21 @@ class Recurrent_NN():
 
     def build_model(self, nn_type="simple", loaded_model=False, classification=False):
         # building a RNN from scratch or loading an already existing model
-
-        # properties: print("weights: \n",self.model.weights)
+        self.classification = classification
+        if loaded_model:
+            self.model = keras.models.load_model(f"{self.model_name}.h5")
+            print(self.model.summary())
 
         self.model = keras.Sequential()
-        self.model.add(keras.layers.LSTM(20, input_shape=(8, self.x_train.shape[1])))
-        self.model.add(keras.layers.Dense(1, activation="linear"))
+        self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True, input_shape=(None, self.x_test.shape(1))))
+        self.model.add(keras.layers.LSTM(30, activation='relu',return_sequences=True))
+        self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=False))
+        self.model.add(keras.layers.Dense(1))
 
+        # properties: print("weights: \n",self.model.weights)
         print(self.model.summary())
 
-    def network_specs(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.2,
+    def train_network(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.002,
                       earlystop=0, metrics=["mse"], further_training=True):
         self.epoch = epoch
         self.es = self.epoch
@@ -204,9 +230,9 @@ class Recurrent_NN():
 
             # NN training start time
             start = time.time()
-            self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
+            self.history_model = self.model.fit(self.fit_data, shuffle=True,
                            epochs=self.epoch,
-                           batch_size=batch_size,verbose=0,
+                           batch_size=batch_size, verbose=0,
                            validation_split=0.2,
                            callbacks=[EarlyStop])
             ## NN training time stop
@@ -222,7 +248,7 @@ class Recurrent_NN():
             return
 
     def predictNN(self, pred_columns=["preds"]):
-        self.preds = self.model.predict([self.x_test])
+        self.preds = self.model.predict(self.pred_data, verbose=0)
         try:
             self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
         except:
@@ -266,7 +292,7 @@ if __name__ == "__main__":
     pred_y = [] #own_pred_data.iloc[::,-2]  #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
 
-    NN = Recurrent_NN("sinus_model")
+    NN = RecurrentNN("sinus_model")
     # Preprocess
     x = data[data.columns[:-1]]
     y = data[data.columns[-1]]
