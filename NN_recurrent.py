@@ -1,4 +1,3 @@
-import pandas
 from tensorflow import keras, metrics
 import numpy as np
 
@@ -20,8 +19,14 @@ class InputProcessing():
         self.OwnPred_y = OwnPred_y.copy()
         self.x = x
         self.y = y
-        self.preprocessed = False
+        # this is redundant, class user shouldn't divide df to x,y
+        self.x_columns = self.x.columns
+        self.y_columns = self.y.columns
+        self.x_columns = [col for col in self.x_columns]
+        self.y_columns = [col for col in self.y_columns]
 
+
+        self.preprocessed = False
 
     def normalize_data(self, features= [], label_feature_name="y"):
         # normalizing data by choosen features respectively
@@ -100,14 +105,14 @@ class InputProcessing():
             self.y_test = self.OwnPred_y
 
     def convert_to_array(self):
-        n_features = len(self.x_train.columns[:-1])
+        self.n_features = len(self.x_train.columns)
         data_list = [self.x_train, self.x_test, self.y_train, self.y_test]
 
         converted_list = []
         counter = 0
         for elem in data_list:
             elem = elem.to_numpy()
-            if counter < 2: elem = elem.reshape(len(elem), n_features)
+            if counter < 2: elem = elem.reshape(len(elem), self.n_features)
             else: elem = elem.reshape(len(elem), 1)
             converted_list.append(elem)
             counter += 1
@@ -118,10 +123,16 @@ class InputProcessing():
 
         return self.x_train, self.x_test, self.y_train, self.y_test
 
+    def convert_to_df(self):
+        self.x_train, self.y_train, self.x_test, self.y_test = pd.DataFrame(self.x_train, columns=self.x_columns), \
+                                                               pd.DataFrame(self.y_train, columns=self.y_columns), \
+                                                               pd.DataFrame(self.x_test, columns=self.x_columns), \
+                                                               pd.DataFrame(self.y_test, columns=self.y_columns)
+
     def call_convert_to_timeseries(self, sequence_length, batch_size):
 
         self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=sequence_length, batch_size=batch_size)
-        self.pred_data = self.convert_to_timeseries(self.preds, target=None)
+        self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=sequence_length, batch_size=batch_size)
 
     @staticmethod
     def convert_to_timeseries(data, target=None, sequence_length=1, batch_size=1):
@@ -177,10 +188,12 @@ class RecurrentNN(InputProcessing):
         plt.show()
 
     def showTrainTest(self, with_pred=None, column_name="x"):
+        # ToDO give other style to the plot, smaller dots etc.
         plt.figure("Neural Network Performance",figsize=(12, 6))
         if with_pred:
             # this is different from ANN
             plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data')
+        print(type(self.x_train))
         plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data')
         if len(self.OwnPred_x) == 0:
             plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data')
@@ -194,12 +207,13 @@ class RecurrentNN(InputProcessing):
     def build_model(self, nn_type="simple", loaded_model=False, classification=False):
         # building a RNN from scratch or loading an already existing model
         self.classification = classification
-        if loaded_model:
+        self.loaded_model = loaded_model
+        if self.loaded_model:
             self.model = keras.models.load_model(f"{self.model_name}.h5")
             print(self.model.summary())
 
         self.model = keras.Sequential()
-        self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True, input_shape=(None, self.x_test.shape(1))))
+        self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True, input_shape=(None, self.n_features) ) )
         self.model.add(keras.layers.LSTM(30, activation='relu',return_sequences=True))
         self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=False))
         self.model.add(keras.layers.Dense(1))
@@ -211,8 +225,7 @@ class RecurrentNN(InputProcessing):
                       earlystop=0, metrics=["mse"], further_training=True):
         self.epoch = epoch
         self.es = self.epoch
-        # single_feature_normalizer = tf.keras.layers.Normalization(input_shape=[1,], axis=None)
-        # single_feature_normalizer.adapt(self.x_test)
+
         if not self.loaded_model:
             # learning schedule for decaying learning_rate
             lr_schedule = keras.optimizers.schedules.ExponentialDecay(
@@ -233,12 +246,11 @@ class RecurrentNN(InputProcessing):
             self.history_model = self.model.fit(self.fit_data, shuffle=True,
                            epochs=self.epoch,
                            batch_size=batch_size, verbose=0,
-                           validation_split=0.2,
                            callbacks=[EarlyStop])
             ## NN training time stop
             end = time.time()
             self.runtime = end - start
-            self.showValLoss()
+            # self.showValLoss()
             if earlystop:
                 self.es = EarlyStop.stopped_epoch
                 if self.es != 0:
@@ -250,10 +262,10 @@ class RecurrentNN(InputProcessing):
     def predictNN(self, pred_columns=["preds"]):
         self.preds = self.model.predict(self.pred_data, verbose=0)
         try:
-            self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
+            self.preds = pd.DataFrame(self.preds, columns=pred_columns)
         except:
             np.squeeze(self.preds, axis=2)
-            self.preds = pandas.DataFrame(self.preds, columns=pred_columns)
+            self.preds = pd.DataFrame(self.preds, columns=pred_columns)
 
     def evaluate(self):
         # This has to be called, after postprocessing (denormalization),
@@ -262,11 +274,11 @@ class RecurrentNN(InputProcessing):
         if len(self.y_test) > 0:
             # get data about predictions
             # self.y_test.reset_index(inplace=True, drop=True)
-            self.mae = metrics.mean_absolute_error(y_true=self.y_test,
-                                                 y_pred=self.preds).np()
+            self.mae = metrics.mean_absolute_error(y_true=self.y_test[:len(self.preds)],
+                                                 y_pred=self.preds).numpy()
             # metrics return a tf.Tensor object, so I convert to np-ndarray.
-            mse = metrics.mean_squared_error(y_true=self.y_test,
-                                                y_pred=self.preds).np()
+            mse = metrics.mean_squared_error(y_true=self.y_test[:len(self.preds)],
+                                                y_pred=self.preds).numpy()
             if self.classification:
                 acc = metrics.Accuracy()
                 self.preds.loc[round(self.preds["preds"]) == 1 , 'correct_output'] = 1
@@ -286,10 +298,10 @@ class RecurrentNN(InputProcessing):
 if __name__ == "__main__":
 
     data = GenerateData.genSinwawe(1,300)
-    # own_pred_data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
+    # own_pred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
-    pred_y = [] #own_pred_data.iloc[::,-2]  #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
+    pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
 
     NN = RecurrentNN("sinus_model")
@@ -324,7 +336,7 @@ if __name__ == "__main__":
     # This applies to only OwnPred usage.
     # shuffle order is right for the showTrainTest method, but using pandas.concat,
     # the indexes are applied, so x_test,y_test must be resetted.
-    # output = pandas.concat([NN.x_test.reset_index(inplace=False, drop=False),
+    # output = pd.concat([NN.x_test.reset_index(inplace=False, drop=False),
     #                         NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
     # output.to_csv("result.csv")
     NN.save_model()
