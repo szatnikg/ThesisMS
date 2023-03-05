@@ -7,7 +7,6 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import time
 
-
 class InputProcessing():
 
     def __init__(self, x=[], y=[],
@@ -24,7 +23,6 @@ class InputProcessing():
         self.y_columns = self.y.columns
         self.x_columns = [col for col in self.x_columns]
         self.y_columns = [col for col in self.y_columns]
-
 
         self.preprocessed = False
 
@@ -62,7 +60,6 @@ class InputProcessing():
         if preds is not None:
             self.preds = preds
 
-
         self.x = self.scale_x.denormalize(self.x, is_preds_normalized=False)
         self.y = self.scale_y.denormalize(self.y, is_preds_normalized=False)
 
@@ -88,6 +85,7 @@ class InputProcessing():
             self.y = self.y.iloc[self.shuffler]
 
         self.splitting()
+        self.n_features = len(self.x_train.columns)
         # print(len(self.x_train), len(self.y_train),":train dataset\n",
         #       len(self.x_test), len(self.y_test),":test dataset")
         return self.x_train, self.y_train, self.x_test, self.y_test
@@ -105,7 +103,7 @@ class InputProcessing():
             self.y_test = self.OwnPred_y
 
     def convert_to_array(self):
-        self.n_features = len(self.x_train.columns)
+
         data_list = [self.x_train, self.x_test, self.y_train, self.y_test]
 
         converted_list = []
@@ -155,18 +153,14 @@ class InputProcessing():
             .reshape(original_shape)
         return new_range
 
-# Class end. Later separate to different modul
 
-
-
-class RecurrentNN(InputProcessing):
+class NeuralNetwork(InputProcessing):
 
     def __init__(self, model_name,
                  x=[], y=[],
                  OwnPred_x=[], OwnPred_y=[]):
 
-        self.processer = InputProcessing.__init__(self, x=x, y=y,
-                                                  OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y,)
+        super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
         self.model_name = model_name
 
     def showValLoss(self):
@@ -188,38 +182,59 @@ class RecurrentNN(InputProcessing):
         plt.show()
 
     def showTrainTest(self, with_pred=None, column_name="x"):
-        # ToDO give other style to the plot, smaller dots etc.
-        plt.figure("Neural Network Performance",figsize=(12, 6))
+
+        plt.figure("Neural Network Performance",figsize=(10, 5))
+        # plt.style.use('bmh')
         if with_pred:
             # this is different from ANN
-            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data')
-        print(type(self.x_train))
-        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data')
+            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=4)
+        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=4)
         if len(self.OwnPred_x) == 0:
-            plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data')
+            plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=3)
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.xlabel(column_name)
         plt.ylabel("Evaluation feature")
         plt.legend()
         plt.show()
-        print("preds:",self.preds,"\n","test: ",self.y_test)
+        print("preds:", self.preds, "\n", "test: ", self.y_test)
 
-    def build_model(self, nn_type="simple", loaded_model=False, classification=False):
+    def build_model(self, nn_type="ann", loaded_model=False, classification=False):
         # building a RNN from scratch or loading an already existing model
+        self.nn_type = nn_type
         self.classification = classification
         self.loaded_model = loaded_model
+        self.model = keras.Sequential()
         if self.loaded_model:
             self.model = keras.models.load_model(f"{self.model_name}.h5")
             print(self.model.summary())
 
-        self.model = keras.Sequential()
-        self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True, input_shape=(None, self.n_features) ) )
-        self.model.add(keras.layers.LSTM(30, activation='relu',return_sequences=True))
-        self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=False))
-        self.model.add(keras.layers.Dense(1))
+        if self.nn_type=="ann":
+            input_lay = keras.Input(shape=(self.x_train.shape[1],))
+            # constructing NN architecture
+
+            first_lay = keras.layers.Dense(64, activation=keras.activations.relu,
+                                           kernel_initializer=keras.initializers.random_normal)
+            hidden_lays = keras.layers.Dense(32, activation=keras.activations.relu,
+                                             kernel_initializer=keras.initializers.random_normal)
+
+            if self.classification:
+                output_lay = keras.layers.Dense(1, activation="sigmoid")
+            else:
+                output_lay = keras.layers.Dense(1, input_shape=(1,), activation="linear")
+            self.model.add(input_lay)
+            self.model.add(first_lay)
+            self.model.add(hidden_lays)
+            self.model.add(output_lay)
+
+        # nn_type == "rnn"
+        else:
+            self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True, input_shape=(None, self.n_features)))
+            self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True))
+            self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=False))
+            self.model.add(keras.layers.Dense(1))
 
         # properties: print("weights: \n",self.model.weights)
-        print(self.model.summary())
+        # print(self.model.summary())
 
     def train_network(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.002,
                       earlystop=0, metrics=["mse"], further_training=True):
@@ -233,8 +248,8 @@ class RecurrentNN(InputProcessing):
                 decay_steps=10000,
                 decay_rate=0.9)
             self.model.compile(loss=loss,  # mae stands for mean absolute error
-                          optimizer=keras.optimizers.Adam(learning_rate=lr_schedule)  # stochastic GD
-                          ,metrics=metrics) # metrics=['accuracy']
+                               optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
+                               metrics=metrics) # metrics=['accuracy']
         if further_training:
             # training the model
             if earlystop:
@@ -243,14 +258,22 @@ class RecurrentNN(InputProcessing):
 
             # NN training start time
             start = time.time()
-            self.history_model = self.model.fit(self.fit_data, shuffle=True,
-                           epochs=self.epoch,
-                           batch_size=batch_size, verbose=0,
-                           callbacks=[EarlyStop])
+            if self.nn_type == 'ann':
+                self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
+                                                    epochs=self.epoch,
+                                                    batch_size=batch_size, verbose=0,
+                                                    validation_split=0.2,
+                                                    callbacks=[EarlyStop])
+            else:
+                self.history_model = self.model.fit(self.fit_data, shuffle=True,
+                                                    epochs=self.epoch,
+                                                    batch_size=batch_size, verbose=0,
+                                                    callbacks=[EarlyStop])
             ## NN training time stop
             end = time.time()
             self.runtime = end - start
-            # self.showValLoss()
+            if self.nn_type == 'ann': self.showValLoss()
+
             if earlystop:
                 self.es = EarlyStop.stopped_epoch
                 if self.es != 0:
@@ -260,7 +283,8 @@ class RecurrentNN(InputProcessing):
             return
 
     def predictNN(self, pred_columns=["preds"]):
-        self.preds = self.model.predict(self.pred_data, verbose=0)
+        if self.nn_type == 'ann': self.preds = self.model.predict(self.x_test, verbose=0)
+        else: self.preds = self.model.predict(self.pred_data, verbose=0)
         try:
             self.preds = pd.DataFrame(self.preds, columns=pred_columns)
         except:
@@ -271,6 +295,10 @@ class RecurrentNN(InputProcessing):
         # This has to be called, after postprocessing (denormalization),
         # to match the y_test data with the (previously normalized, now denormalized) preds-data
         # ToDo get R^2 func or similar for evaluation...
+        print("x_test size:", len(self.x_test), "\n",
+              "preds size ", len(self.preds), "\n",
+              "y_test_size: ", len(self.y_test))
+
         if len(self.y_test) > 0:
             # get data about predictions
             # self.y_test.reset_index(inplace=True, drop=True)
