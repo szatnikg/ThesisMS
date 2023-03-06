@@ -4,23 +4,27 @@ from NeuralNetwork import NeuralNetwork
 
 class RecurrentIf:
       # Todo: n_features = len(x_columns)
-      def __init__(self, model_name, x, y, Ownpred_x=[], Ownpred_y=[],  epoch=10, batch_size=20, sequence_length=1):
+      def __init__(self, model_name, x, y, Ownpred_x=[], Ownpred_y=[],
+                   epoch=10, batch_size=20,loaded_model=False,
+                   sequence_length=1, further_training=True):
             self.epoch = epoch
             self.sequence_length = sequence_length
             self.batch_size = batch_size
+            self.loaded_model = loaded_model
+            self.further_training = further_training
             self.rec_NN = NeuralNetwork(model_name=model_name, x=x, y=y,
                  OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y)
 
       def run(self):
-            self.rec_NN.normalize_data(features=[])
+            self.rec_NN.normalize_data(features=[],scale_type="normal")
             self.rec_NN.split_train_test(train_split=0.75, shuffle=False)
             # it produces x_train, x_test, y_train, y_test if shuffle was true, in shuffled format as pd.dataframes
             self.rec_NN.convert_to_array()
             self.rec_NN.call_convert_to_timeseries(sequence_length=self.sequence_length, batch_size=self.batch_size)
 
-            self.rec_NN.build_model(nn_type='rnn',loaded_model=False)
+            self.rec_NN.build_model(nn_type='rnn',loaded_model=self.loaded_model)
 
-            self.rec_NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=True)
+            self.rec_NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.rec_NN.predictNN()
             self.rec_NN.denormalize_data(is_preds_normalized=True)
             self.rec_NN.evaluate()
@@ -31,9 +35,13 @@ class RecurrentIf:
             # plt.plot(processer.x_test[:len(preds)]["x"], preds, c="r", label="pred")
 
 class DenseIf:
-      def __init__(self, model_name, x, y, Ownpred_x=[], Ownpred_y=[],  epoch=10, batch_size=20):
+      def __init__(self, model_name, x, y, Ownpred_x=[], Ownpred_y=[],
+                   epoch=10, batch_size=20, loaded_model=False,
+                   further_training=True):
             self.epoch = epoch
             self.batch_size = batch_size
+            self.loaded_model = loaded_model
+            self.further_training = further_training
             self.regressor = NeuralNetwork(model_name=model_name, x=x, y=y,
                  OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y)
 
@@ -41,8 +49,8 @@ class DenseIf:
             self.regressor.normalize_data(features=[])
             self.regressor.split_train_test(train_split=0.75, shuffle=True)
 
-            self.regressor.build_model(nn_type='ann',loaded_model=False)
-            self.regressor.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=True)
+            self.regressor.build_model(nn_type='ann',loaded_model=self.loaded_model)
+            self.regressor.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.regressor.predictNN()
 
             self.regressor.denormalize_data(is_preds_normalized=True)
@@ -54,10 +62,10 @@ class DenseIf:
 
 # ToDO write Tester class with unittests.
 
-# from GenerateData import genSinwawe
-# data = genSinwawe(2, 1340)
-from GenerateData import genUnNormalizedData
-data = genUnNormalizedData(-800, 800,type='square', step=1)
+from GenerateData import genSinwawe
+data = genSinwawe(2, 1340)
+# from GenerateData import genUnNormalizedData
+# data = genUnNormalizedData(-800, 800,type='square', step=1)
 
 # data = pd.DataFrame(data)
 x_columns = data.columns[:-1]
@@ -68,14 +76,14 @@ y_columns = [col for col in y_columns]
 # these parameters will come from a UI or config-file.
 n_input = 6
 batch_size = 10
-epoch = 200
-nn = 'ann'
-model_name = "cubic_with_minus"
+epoch = 100
+nn = 'rnn'
+model_name = "timeseries_seasonal"
 
 
 if __name__ == "__main__":
       if nn == 'rnn':
-            Runner = RecurrentIf("timeseries_seasonal",
+            Runner = RecurrentIf(model_name,
                                   data[x_columns], data[y_columns],
                                   epoch=epoch, batch_size=batch_size,
                                   sequence_length=n_input)

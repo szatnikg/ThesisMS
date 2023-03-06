@@ -26,21 +26,24 @@ class InputProcessing():
 
         self.preprocessed = False
 
-    def normalize_data(self, features= [], label_feature_name="y"):
+    def normalize_data(self, features= [],scale_type="normal", label_feature_name="y"):
         # normalizing data by choosen features respectively
-
+        self.scale_type = scale_type
         self.scale_x = DataProcessing.Scaler(features=features)
         self.x = self.scale_x.normalize(self.x,
+                                     scale_type = self.scale_type,
                                      label_feature_name=label_feature_name,
                                      prediction_feature_name="preds")
 
         self.scale_y = DataProcessing.Scaler(features=features)
         self.y = self.scale_y.normalize(self.y,
+                                     scale_type=self.scale_type,
                                      label_feature_name=label_feature_name,
                                      prediction_feature_name="preds")
 
         # Is it right normalizing Ownpred with x_train?
         self.OwnPred_x = self.scale_x.normalize(self.OwnPred_x,
+                                        scale_type=self.scale_type,
                                         label_feature_name=label_feature_name,
                                         prediction_feature_name="preds")
         self.preprocessed = True
@@ -236,7 +239,7 @@ class NeuralNetwork(InputProcessing):
         # properties: print("weights: \n",self.model.weights)
         # print(self.model.summary())
 
-    def train_network(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.002,
+    def train_network(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.001,
                       earlystop=0, metrics=["mse"], further_training=True):
         self.epoch = epoch
         self.es = self.epoch
@@ -245,7 +248,7 @@ class NeuralNetwork(InputProcessing):
             # learning schedule for decaying learning_rate
             lr_schedule = keras.optimizers.schedules.ExponentialDecay(
                 initial_learning_rate=learning_rate,
-                decay_steps=10000,
+                decay_steps=20000,
                 decay_rate=0.9)
             self.model.compile(loss=loss,  # mae stands for mean absolute error
                                optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
@@ -332,7 +335,7 @@ if __name__ == "__main__":
     pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
 
-    NN = RecurrentNN("sinus_model")
+    NN = NeuralNetwork("sinus_model")
     # Preprocess
     x = data[data.columns[:-1]]
     y = data[data.columns[-1]]

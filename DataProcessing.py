@@ -13,17 +13,19 @@ class Scaler:
         # used: when applying to OwnPred_x the same x_train feature-scales.
         self.already_constructed = False
 
-    def normalize(self, dict_df, label_feature_name="y", prediction_feature_name="preds", to_dict=False):
+    def normalize(self, dict_df, label_feature_name="y", prediction_feature_name="preds", scale_type="normal", to_dict=False):
 
         df = pd.DataFrame(dict_df)
         result = df.copy()
         self.prediction_feature_name = prediction_feature_name
         self.to_dict = to_dict
+        self.scale_type = scale_type
         if not len(self.features):
             loop_container = df.columns
         else: loop_container = self.features
         if not self.already_constructed:
             self.feature_all_max, self.feature_all_min = {}, {}
+            self.feature_all_mean, self.feature_all_std = {}, {}
 
         # if already constructed, apply the given feautre_all_max/min for normalization
 
@@ -31,18 +33,32 @@ class Scaler:
             if self.already_constructed:
                 max_value = self.feature_all_max[feature_name]
                 min_value = self.feature_all_min[feature_name]
+                mean_value = self.feature_all_mean[feature_name]
+                std_value = self.feature_all_std[feature_name]
             else:
                 max_value = df[feature_name].max()
                 min_value = df[feature_name].min()
+                mean_value = df[feature_name].mean()
+                std_value = df[feature_name].std()
 
             # Todo give other methods as well, for handling outlying data
-            result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
+            if self.scale_type == "normal":
+                result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
+            elif self.scale_type == "standard":
+                result[feature_name] = (df[feature_name] - mean_value) / std_value
+            else: raise ValueError("choose a scale_type from [normal, standard]")
+
             # if feature_name == label: create an additional one for preds.
             if feature_name == label_feature_name:
                 self.feature_all_min[self.prediction_feature_name] = min_value
                 self.feature_all_max[self.prediction_feature_name] = max_value
+                self.feature_all_mean[self.prediction_feature_name] = mean_value
+                self.feature_all_std[self.prediction_feature_name] = std_value
             self.feature_all_min[feature_name] = min_value
             self.feature_all_max[feature_name] = max_value
+            self.feature_all_mean[feature_name] = mean_value
+            self.feature_all_std[feature_name] = std_value
+
         self.already_constructed = True
         if self.to_dict:
             dict_to_return = {}
@@ -66,7 +82,14 @@ class Scaler:
             if feature_name in self.feature_all_max:
                 max_value = self.feature_all_max[feature_name]
                 min_value = self.feature_all_min[feature_name]
-                original[feature_name] = (original[feature_name] * (max_value - min_value) + min_value)
+                mean_value = self.feature_all_mean[feature_name]
+                std_value = self.feature_all_std[feature_name]
+                if self.scale_type == "normal":
+                    original[feature_name] = (original[feature_name] * (max_value - min_value) + min_value)
+                elif self.scale_type == "standard":
+                    original[feature_name] = (original[feature_name] * std_value) + mean_value
+                else: raise ValueError("choose a scale_type from [normal, standard]")
+
         if self.to_dict:
             dict_to_return = {}
             for col in original.columns:
@@ -87,14 +110,11 @@ if __name__ == "__main__":
     # print(df.columns[:-1])
 
 
-    scale = Scaler(df_nopred.columns[::])
-    a = scale.normalize(df_nopred)
-    a["preds"] = [0.9099442651804048, 0.009680258140217073, 0.0, 1.1]
+    scale = Scaler(df_nopred.columns)
+    a = scale.normalize(df,scale_type="standard")
+    # a["preds"] = [0.9099442651804048, 0.009680258140217073, 0.0, 1.1]
+
     b = scale.denormalize(a, is_preds_normalized=False)
     print("normalizing", a)
     print("denormalizing", b)
 
-    print(df.iloc[:2, 1])
-    from matplotlib import pyplot as plt
-    plt.scatter(df.iloc[:2, 1], df.iloc[:2, 2])
-    plt.show()
