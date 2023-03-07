@@ -1,6 +1,23 @@
 import pandas as pd
 from NeuralNetwork import NeuralNetwork
 
+class ConfigReader:
+      def __init__(self, config_path):
+            self.config_path = config_path
+
+""""  
+Config Structure:
+{
+      hyperparams: {
+                  
+                        }
+      network: {
+      
+                  }
+}
+
+"""
+
 
 class NN_interface:
       # Todo: n_features = len(x_columns)
@@ -40,7 +57,7 @@ class NN_interface:
             self.NN.save_model()
 
       def run_ann(self):
-            self.NN.normalize_data(features=[], scale_type=self.scale_type)
+            self.NN.normalize_data(features=[], scale_type=self.scale_type, label_feature_name=self.label_feature_name)
             self.NN.split_train_test(train_split=self.train_split, shuffle=True)
 
             self.NN.build_model(nn_type='ann',loaded_model=self.loaded_model)
@@ -65,30 +82,29 @@ data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
 # data = pd.DataFrame(data)
 x_columns = data.columns[:-2]
 x_columns = [col for col in x_columns]
-y_columns = data.columns[-1]
+y_columns = data.columns[-2]
 if not type(y_columns)==str:
       y_columns = [col for col in y_columns]
 
 # these parameters will come from a UI or config-file.
 n_input = 6
-batch_size = 6
-epoch = 200
+batch_size = 4
+epoch = 100
 train_split = 0.75
 nn_type = 'ann'
 model_name = "timeseries_seasonal"
-label_feature_name = "y"
+label_feature_name = "Teljesitmeny"
 scale_type = "normal"
-
+loaded_model = False
 show_column_name = "TanOra"
 
 if __name__ == "__main__":
       Runner = NN_interface(model_name,
                             data[x_columns], data[y_columns],
                             epoch=epoch, batch_size=batch_size,
-                            sequence_length=n_input, train_split=train_split,
+                            sequence_length=n_input, train_split=train_split, loaded_model=loaded_model,
                             label_feature_name=label_feature_name, scale_type=scale_type, show_column_name=show_column_name)
       if nn_type == "ann":
             Runner.run_ann()
       elif nn_type == "rnn":
             Runner.run_rnn()
-

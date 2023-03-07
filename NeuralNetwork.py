@@ -15,7 +15,7 @@ class InputProcessing():
                  OwnPred_x=[], OwnPred_y=[]):
         # creating class variables
         if len(x) == 0 or len(y) == 0:
-            raise ValueError("Provide x or y value!")
+            raise ValueError("Provide x and y value!")
         self.OwnPred_x = OwnPred_x.copy()
         self.OwnPred_y = OwnPred_y.copy()
         self.x = x
@@ -165,7 +165,7 @@ class NeuralNetwork(InputProcessing):
                  x=[], y=[],
                  OwnPred_x=[], OwnPred_y=[]):
         proj_folder = Path().absolute()  # alternative: Path(__file__).parent.resolve()
-        data_folder = os.path.join(proj_folder, "project_data")
+        data_folder = os.path.join(proj_folder, "..", "project_data")
 
         if not os.path.exists(data_folder):
             os.mkdir(data_folder)
@@ -326,49 +326,21 @@ class NeuralNetwork(InputProcessing):
             # acc = metrics.RootMeanSquaredError()
             # acc.update_state(self.y_test, self.preds.squeeze())
 
-            print("mae:", self.mae, "\n",
-                  "mse:", mse,"\n")
+            # print("mae:", self.mae, "\n",
+            #       "mse:", mse,"\n")
 
     def save_model(self):
         self.model.save(self.model_path)
 
 if __name__ == "__main__":
 
-    data = GenerateData.genSinwawe(1,300)
+    # data = GenerateData.genSinwawe(1,300)
     # own_pred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
     pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})
 
 
-    NN = NeuralNetwork("sinus_model")
-    # Preprocess
-    x = data[data.columns[:-1]]
-    y = data[data.columns[-1]]
-    NN.preprocessing(x,
-                     y, normalize=True, features=[],
-                     OwnPred_x=pred_x, OwnPred_y=pred_y,
-                     label_feature_name="y")
-    NN.split_train_test(train_split=0.7, shuffle=True)
-
-    NN.build_model(
-                loaded_model=False,
-                classification=False,
-                nn_type="simpleRNN")
-    NN.network_specs(epoch=200,
-                     batch_size=5,
-                     learning_rate=0.0025,
-                     earlystop=230,
-                     metrics=["mse"],
-                     loss="mse",
-                     further_training=True)
-    # print("Training Time:",
-    #       str(round(NN.runtime, 4)), "seconds."
-    #       )
-    NN.predictNN()
-    NN.postprocessing(is_preds_normalized=True)
-    NN.evaluate()
-    NN.showTrainTest(with_pred=True, column_name=data.columns[0])
 
     # This applies to only OwnPred usage.
     # shuffle order is right for the showTrainTest method, but using pandas.concat,
@@ -376,4 +348,3 @@ if __name__ == "__main__":
     # output = pd.concat([NN.x_test.reset_index(inplace=False, drop=False),
     #                         NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
     # output.to_csv("result.csv")
-    NN.save_model()
