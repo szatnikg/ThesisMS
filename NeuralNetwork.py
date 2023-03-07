@@ -6,6 +6,8 @@ import GenerateData
 import pandas as pd
 from matplotlib import pyplot as plt
 import time
+from pathlib import Path
+import os
 
 class InputProcessing():
 
@@ -18,15 +20,15 @@ class InputProcessing():
         self.OwnPred_y = OwnPred_y.copy()
         self.x = x
         self.y = y
-        # this is redundant, class user shouldn't divide df to x,y
-        self.x_columns = self.x.columns
-        self.y_columns = self.y.columns
-        self.x_columns = [col for col in self.x_columns]
-        self.y_columns = [col for col in self.y_columns]
+        # # this is redundant, class user shouldn't divide df to x,y AND buggy.
+        # self.x_columns = self.x.columns
+        # self.y_columns = self.y.columns
+        # self.x_columns = [col for col in self.x_columns]
+        # self.y_columns = [col for col in self.y_columns]
 
         self.preprocessed = False
 
-    def normalize_data(self, features= [],scale_type="normal", label_feature_name="y"):
+    def normalize_data(self, features= [], scale_type="normal", label_feature_name="y"):
         # normalizing data by choosen features respectively
         self.scale_type = scale_type
         self.scale_x = DataProcessing.Scaler(features=features)
@@ -162,9 +164,14 @@ class NeuralNetwork(InputProcessing):
     def __init__(self, model_name,
                  x=[], y=[],
                  OwnPred_x=[], OwnPred_y=[]):
+        proj_folder = Path().absolute()  # alternative: Path(__file__).parent.resolve()
+        data_folder = os.path.join(proj_folder, "project_data")
 
+        if not os.path.exists(data_folder):
+            os.mkdir(data_folder)
         super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
         self.model_name = model_name
+        self.model_path = os.path.join(data_folder, f"{self.model_name}.h5")
 
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
@@ -187,13 +194,12 @@ class NeuralNetwork(InputProcessing):
     def showTrainTest(self, with_pred=None, column_name="x"):
 
         plt.figure("Neural Network Performance",figsize=(10, 5))
-        # plt.style.use('bmh')
+        plt.style.use('bmh')
         if with_pred:
-            # this is different from ANN
-            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=4)
-        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=4)
+            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=6)
+        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=6)
         if len(self.OwnPred_x) == 0:
-            plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=3)
+            plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.xlabel(column_name)
         plt.ylabel("Evaluation feature")
@@ -208,7 +214,7 @@ class NeuralNetwork(InputProcessing):
         self.loaded_model = loaded_model
         self.model = keras.Sequential()
         if self.loaded_model:
-            self.model = keras.models.load_model(f"{self.model_name}.h5")
+            self.model = keras.models.load_model(self.model_path)
             print(self.model.summary())
 
         if self.nn_type=="ann":
@@ -239,7 +245,7 @@ class NeuralNetwork(InputProcessing):
         # properties: print("weights: \n",self.model.weights)
         # print(self.model.summary())
 
-    def train_network(self,  epoch=90, batch_size=1,loss="mse", learning_rate=0.001,
+    def train_network(self,  epoch=90, batch_size=1, loss="mse", learning_rate=0.001,
                       earlystop=0, metrics=["mse"], further_training=True):
         self.epoch = epoch
         self.es = self.epoch
@@ -320,11 +326,11 @@ class NeuralNetwork(InputProcessing):
             # acc = metrics.RootMeanSquaredError()
             # acc.update_state(self.y_test, self.preds.squeeze())
 
-            # print("mae:", self.mae, "\n",
-            #       "mse:", mse,"\n")
+            print("mae:", self.mae, "\n",
+                  "mse:", mse,"\n")
 
     def save_model(self):
-        self.model.save(f"{self.model_name}.h5")
+        self.model.save(self.model_path)
 
 if __name__ == "__main__":
 

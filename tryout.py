@@ -1,4 +1,12 @@
 import pandas as pd
+from pathlib import Path
+import os
+
+proj_folder = Path().absolute() # Path(__file__).parent.resolve()
+data_folder = os.path.join(proj_folder,".." , "project_data")
+
+if not os.path.exists(data_folder):
+    os.mkdir(data_folder)
 
 # # define dataset for multivariate timeseriesgeneration
 # # dataset = hstack((series, series2))
