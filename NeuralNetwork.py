@@ -174,8 +174,8 @@ class NeuralNetwork(InputProcessing, Layers):
         if not os.path.exists(data_folder):
             os.mkdir(data_folder)
 
-        super(InputProcessing).__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
-        super(Layers, self).__init__(network_structure)
+        super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
+        self.layer_generator = Layers.__init__(self, layer_obj=network_structure)
 
         self.model_name = model_name
         self.model_path = os.path.join(data_folder, f"{self.model_name}.h5")

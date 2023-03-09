@@ -5,10 +5,10 @@ from tryout import LoadConfig
 class NN_interface(LoadConfig):
 
       def __init__(self, x, y, Ownpred_x=[], Ownpred_y=[]):
-            super().__init__()
+            super(NN_interface, self).__init__()
 
             self.NN = NeuralNetwork(model_name=self.model_name, x=x, y=y,
-                 OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y)
+                 OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y, network_structure=self.config_file)
 
             if self.nn_type == "rnn":
                   self.run_rnn()

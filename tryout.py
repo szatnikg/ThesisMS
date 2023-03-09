@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import os
-
+from keras import layers, Input, initializers
 # Note:
 # resetting and dropping old indexes can be done by:
 # my_df.reset_index(inplace=True, drop=True)
@@ -79,7 +79,7 @@ class LoadConfig(Source):
             json.dump(self.config_file,json_output)
 
 class Layers:
-    def __init__(self, network_structure={}):
+    def __init__(self, layer_obj={}):
         # Key names for NN.build_model() method
         self.KEY_input_spec = "input_layer"
         self.KEY_input_type = "type"
@@ -92,7 +92,7 @@ class Layers:
         self.KEY_hidden_return_seq = "return_sequences"
         self.KEY_hidden_activation = "activation"
         self.KEY_hidden_initializer = "initializer"
-        self.layer_obj = network_structure
+        self.layer_obj = layer_obj
 
     def create_input_layer(self):
         # Input layer decisions are not thought through
@@ -110,9 +110,9 @@ class Layers:
             shape_II = 1
 
         if value[self.KEY_input_type].lower() == "dense":
-            input_layer = keras.Input(shape=(shape_I,))
+            input_layer = Input(shape=(shape_I,))
         elif value[self.KEY_input_type].lower() == "lstm":
-            input_layer = keras.Input(shape=(None, shape_II))
+            input_layer = Input(shape=(None, shape_II))
         else: raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
 
         return input_layer
@@ -136,10 +136,10 @@ class Layers:
             else: return_sequences = False
 
             if nn_type.upper() == "DENSE":
-                hidden_lays = keras.layers.Dense(unit, activation=activation_func,
-                                                 kernel_initializer=keras.initializers.random_normal)
+                hidden_lays = layers.Dense(unit, activation=activation_func,
+                                                 kernel_initializer=initializers.random_normal)
             elif nn_type.upper() == "LSTM":
-                hidden_lays = keras.layers.LSTM(unit, activation=activation_func, return_sequences=return_sequences)
+                hidden_lays = layers.LSTM(unit, activation=activation_func, return_sequences=return_sequences)
             else:
                 raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
             yield hidden_lays
@@ -151,7 +151,7 @@ if __name__ == "__main__":
     src = LoadConfig()
     network_structure = src.config_file
     GenLayers = Layers(network_structure)
-    import keras
+
 
     model = keras.Sequential()
     model.add(GenLayers.create_input_layer())
