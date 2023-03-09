@@ -1,0 +1,31 @@
+{
+    "input_layer": { "shape_1": "None",
+                    "shape_2": "n_features"
+                    },
+
+    "hidden_layers": [ {  "type": "LSTM",
+                "unit": 30 ,
+                "initializer": "random_normal",
+                "activation": "relu",
+                "return_sequences": 1
+                  },
+                    {  "type": "LSTM",
+                "unit": 30 ,
+                "initializer": "random_normal",
+                "activation": "relu",
+                "return_sequences": 0
+                   },
+                   {"type": "LSTM",
+                    "unit": 30,
+                    "initializer": "random_normal",
+                    "activation": "relu",
+                    "return_sequences": 0
+                    },
+                    {"type": "Dense",
+                "unit": 1 ,
+                "initializer": "None",
+                "activation": "None",
+                "return_sequences": "None"
+                   }
+                    ]
+    }

@@ -1,41 +1,13 @@
 import pandas as pd
 from NeuralNetwork import NeuralNetwork
+from tryout import Source
 
-class ConfigReader:
-      def __init__(self, config_path):
-            self.config_path = config_path
+class NN_interface(Source):
 
-""""  
-Config Structure:
-{
-      hyperparams: {
-                  
-                        }
-      network: {
-      
-                  }
-}
+      def __init__(self, x, y, Ownpred_x=[], Ownpred_y=[]):
+            super().__init__(self)
 
-"""
-
-
-class NN_interface:
-      # Todo: n_features = len(x_columns)
-      def __init__(self, model_name, x, y, Ownpred_x=[], Ownpred_y=[],
-                   epoch=10, batch_size=20,loaded_model=False,
-                   sequence_length=1, train_split=0.7, further_training=True, scale_type="normal", label_feature_name="y", show_column_name="x"):
-
-            self.epoch = epoch
-            self.sequence_length = sequence_length
-            self.batch_size = batch_size
-            self.loaded_model = loaded_model
-            self.further_training = further_training
-            self.train_split = train_split
-            self.scale_type = scale_type
-            self.label_feature_name = label_feature_name
-            self.show_column_name = show_column_name
-
-            self.NN = NeuralNetwork(model_name=model_name, x=x, y=y,
+            self.NN = NeuralNetwork(model_name=self.model_name, x=x, y=y,
                  OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y)
 
       def run_rnn(self):
@@ -75,35 +47,32 @@ class NN_interface:
 
 # from GenerateData import genSinwawe
 # data = genSinwawe(2, 1340)
-# from GenerateData import genUnNormalizedData
-# data = genUnNormalizedData(-800, 800,type='square', step=1)
-data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+from GenerateData import genUnNormalizedData
+data = genUnNormalizedData(-800, 800,type='square', step=1)
+# data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
 
 # data = pd.DataFrame(data)
-x_columns = data.columns[:-2]
+x_columns = data.columns[:-1]
 x_columns = [col for col in x_columns]
-y_columns = data.columns[-2]
-if not type(y_columns)==str:
+y_columns = data.columns[-1]
+if not type(y_columns) == str:
       y_columns = [col for col in y_columns]
 
 # these parameters will come from a UI or config-file.
-n_input = 6
-batch_size = 4
-epoch = 100
-train_split = 0.75
-nn_type = 'ann'
-model_name = "timeseries_seasonal"
-label_feature_name = "Teljesitmeny"
-scale_type = "normal"
-loaded_model = False
-show_column_name = "TanOra"
+# n_input = 6
+# batch_size = 6
+# epoch = 200
+# train_split = 0.75
+# nn_type = 'ann'
+# model_name = "qubic_with_minus"
+# label_feature_name = "y"
+# scale_type = "normal"
+# loaded_model = False
+# show_column_name = "x"
 
 if __name__ == "__main__":
       Runner = NN_interface(model_name,
-                            data[x_columns], data[y_columns],
-                            epoch=epoch, batch_size=batch_size,
-                            sequence_length=n_input, train_split=train_split, loaded_model=loaded_model,
-                            label_feature_name=label_feature_name, scale_type=scale_type, show_column_name=show_column_name)
+                            data[x_columns], data[y_columns])
       if nn_type == "ann":
             Runner.run_ann()
       elif nn_type == "rnn":

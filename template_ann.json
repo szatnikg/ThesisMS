@@ -1,0 +1,26 @@
+{
+            "input_layer": { "type": "Dense",
+                            "shape_1": "n_features",
+                            "shape_2": "None"
+                            },
+
+            "hidden_layers": [{"type": "Dense",
+                               "unit": 64,
+                               "initializer": "random_normal",
+                               "activation": "relu",
+                               "return_sequences": "false"
+                               },
+                              {"type": "Dense",
+                               "unit": 32,
+                               "initializer": "random_normal",
+                               "activation": "relu",
+                               "return_sequences": "false"
+                               },
+                              {"type": "Dense",
+                               "unit": 1,
+                               "initializer": "None",
+                               "activation": "None",
+                               "return_sequences": "None"
+                               }
+                              ]
+        }

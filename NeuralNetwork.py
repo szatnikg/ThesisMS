@@ -208,7 +208,7 @@ class NeuralNetwork(InputProcessing):
         print("preds:", self.preds, "\n", "test: ", self.y_test)
 
     def build_model(self, nn_type="ann", loaded_model=False, classification=False):
-        # building a RNN from scratch or loading an already existing model
+        # building an RNN from scratch or loading an already existing model
         self.nn_type = nn_type
         self.classification = classification
         self.loaded_model = loaded_model
@@ -221,9 +221,9 @@ class NeuralNetwork(InputProcessing):
             input_lay = keras.Input(shape=(self.x_train.shape[1],))
             # constructing NN architecture
 
-            first_lay = keras.layers.Dense(64, activation=keras.activations.relu,
+            first_lay = keras.layers.Dense(64, activation='relu',
                                            kernel_initializer=keras.initializers.random_normal)
-            hidden_lays = keras.layers.Dense(32, activation=keras.activations.relu,
+            hidden_lays = keras.layers.Dense(32, activation='relu',
                                              kernel_initializer=keras.initializers.random_normal)
 
             if self.classification:
@@ -237,13 +237,15 @@ class NeuralNetwork(InputProcessing):
 
         # nn_type == "rnn"
         else:
+
             self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True, input_shape=(None, self.n_features)))
             self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=True))
             self.model.add(keras.layers.LSTM(30, activation='relu', return_sequences=False))
             self.model.add(keras.layers.Dense(1))
 
+
         # properties: print("weights: \n",self.model.weights)
-        # print(self.model.summary())
+        print(self.model.summary())
 
     def train_network(self,  epoch=90, batch_size=1, loss="mse", learning_rate=0.001,
                       earlystop=0, metrics=["mse"], further_training=True):
