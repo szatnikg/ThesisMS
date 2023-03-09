@@ -2,23 +2,23 @@ import pandas as pd
 from pathlib import Path
 import os
 
-proj_folder = Path().absolute() # Path(__file__).parent.resolve()
-data_folder = os.path.join(proj_folder,".." , "project_data")
-
-if not os.path.exists(data_folder):
-    os.mkdir(data_folder)
-
-# # define dataset for multivariate timeseriesgeneration
-# # dataset = hstack((series, series2))
-# # print(dataset)
-# # n_features = dataset.shape[1]
-
 # Note:
 # resetting and dropping old indexes can be done by:
 # my_df.reset_index(inplace=True, drop=True)
+# This applies to only OwnPred usage.
+# shuffle order is right for the showTrainTest method, but using pandas.concat,
+# the indexes are applied, so x_test,y_test must be resetted.
+# output = pd.concat([NN.x_test.reset_index(inplace=False, drop=False),
+#                         NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
+# output.to_csv("result.csv")
+
+
+
 import json
 class Source:
     def __init__(self, config_path=None):
+        # initialize folders
+        proj_folder = Path().absolute()  # alternative: Path(__file__).parent.resolve()
 
         if config_path: self.config_path = config_path
         else: self.config_path = os.path.join(proj_folder,"config.json")
@@ -46,6 +46,13 @@ class Source:
         self.KEY_hyper_label_feature_name = "label_feature_name_for_normalization"
         self.KEY_hyper_show_column_name = "show_column_name_in_plot"
         self.KEY_hyper_scale_type = "scale_type"
+        self.KEY_hyper_shuffle = "shuffle"
+        self.KEY_hyper_is_normalize = "want_to_normalize"
+        self.KEY_hyper_nn_type = "high_level_nn_type"
+
+class LoadConfig(Source):
+    def __init__(self,config_path=None):
+        super(LoadConfig, self).__init__(config_path=config_path)
 
         self.read_config()
 
@@ -63,96 +70,94 @@ class Source:
         self.label_feature_name = self.config_file[self.KEY_hyper_label_feature_name]
         self.show_column_name = self.config_file[self.KEY_hyper_show_column_name]
         self.scale_type = self.config_file[self.KEY_hyper_scale_type]
-
+        self.shuffle = self.config_file[self.KEY_hyper_shuffle]
+        self.is_normalize = self.config_file[self.KEY_hyper_is_normalize]
+        self.nn_type = self.config_file[self.KEY_hyper_nn_type]
 
     def write_config(self):
         with open("project_data-folder..+self.config_path", "w") as json_output:
             json.dump(self.config_file,json_output)
 
-a = Source("config.json")
-a=b=a
+class Layers:
+    def __init__(self, network_structure={}):
+        # Key names for NN.build_model() method
+        self.KEY_input_spec = "input_layer"
+        self.KEY_input_type = "type"
+        self.KEY_input_shape_i = "shape_1"
+        self.KEY_input_shape_ii = "shape_2"
+
+        self.KEY_hidden_spec = "hidden_layers"
+        self.KEY_hidden_type = "type"
+        self.KEY_hidden_unit = "unit"
+        self.KEY_hidden_return_seq = "return_sequences"
+        self.KEY_hidden_activation = "activation"
+        self.KEY_hidden_initializer = "initializer"
+        self.layer_obj = network_structure
+
+    def create_input_layer(self):
+        # Input layer decisions are not thought through
+        value = self.layer_obj[self.KEY_input_spec]
+
+        shape_I = value["shape_1"]
+        shape_II = value["shape_2"]
+        if shape_I.lower() == "none":
+            shape_I = None
+        elif shape_I.lower() == "n_features":
+            shape_I = 1
+        if shape_II.lower() == "none":
+            shape_II = None
+        elif shape_II.lower() == "n_features":
+            shape_II = 1
+
+        if value[self.KEY_input_type].lower() == "dense":
+            input_layer = keras.Input(shape=(shape_I,))
+        elif value[self.KEY_input_type].lower() == "lstm":
+            input_layer = keras.Input(shape=(None, shape_II))
+        else: raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
+
+        return input_layer
+
+    def generate_hidden_layer(self):
+
+        value = self.layer_obj[self.KEY_hidden_spec]
+
+        for layer in value:
+            nn_type = layer[self.KEY_hidden_type]
+            unit = layer[self.KEY_hidden_unit]
+            activation_func = layer[self.KEY_hidden_activation]
+            if activation_func.lower() == "none":
+                activation_func = None
+
+            return_sequences = layer[self.KEY_hidden_return_seq]
+            if return_sequences.lower() == "none":
+                return_sequences = None
+            elif return_sequences.lower() == "true":
+                return_sequences = True
+            else: return_sequences = False
+
+            if nn_type.upper() == "DENSE":
+                hidden_lays = keras.layers.Dense(unit, activation=activation_func,
+                                                 kernel_initializer=keras.initializers.random_normal)
+            elif nn_type.upper() == "LSTM":
+                hidden_lays = keras.layers.LSTM(unit, activation=activation_func, return_sequences=return_sequences)
+            else:
+                raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
+            yield hidden_lays
+
+
+
 if __name__ == "__main__":
 
-    # data = pd.read_excel(
-    #     "C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
-    # data = GenerateData.genUnNormalizedData(1,300,type="square",step=400)
-    # own_pred_data = pandas.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
-
-    pred_x = [] # own_pred_data.iloc[::, :-2]
-    pred_y = [] #own_pred_data.iloc[::,-2]  #pandas.DataFrame({"y": [j**2 for j in range(460, 560)]})
+    src = LoadConfig()
+    network_structure = src.config_file
+    GenLayers = Layers(network_structure)
     import keras
-    config_file = {
-            "input_layer": { "type": "Dense",
-                            "shape_1": "n_features",
-                            "shape_2": "None"
-                            },
-
-            "hidden_layers": [{"type": "Dense",
-                               "unit": 64,
-                               "initializer": "random_normal",
-                               "activation": "relu",
-                               "return_sequences": "false"
-                               },
-                              {"type": "Dense",
-                               "unit": 32,
-                               "initializer": "random_normal",
-                               "activation": "relu",
-                               "return_sequences": "false"
-                               },
-                              {"type": "Dense",
-                               "unit": 1,
-                               "initializer": "None",
-                               "activation": "None",
-                               "return_sequences": "None"
-                               }
-                              ]
-        }
 
     model = keras.Sequential()
-    for key, value in config_file.items():
-        if key == "input_layer":
-            shape_I = value["shape_1"]
-            shape_II = value["shape_2"]
-            if shape_I.lower() == "none":
-                shape_I = None
-            elif shape_I.lower() == "n_features":
-                shape_I = 1
-            if shape_II.lower() == "none":
-                shape_II = None
-            elif shape_II.lower() == "n_features":
-                shape_II = 1
-
-            if value["type"].lower() == "dense":
-                input_layer = keras.Input(shape=(shape_I,))
-            elif value["type"].lower() == "lstm":
-                input_layer = keras.Input(shape=(None, shape_II))
-            else: raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
-
-            model.add(input_layer)
-        if key == "hidden_layers":
-            for layer in value:
-                nn_type = layer["type"]
-                unit = layer["unit"]
-                activation_func = layer["activation"]
-                if activation_func.lower() == "none":
-                    activation_func = None
-
-                return_sequences = layer["return_sequences"]
-                if return_sequences.lower() == "none":
-                    return_sequences = None
-                elif return_sequences.lower() == "true":
-                    return_sequences = True
-                else: return_sequences = False
-
-                if nn_type.upper() == "DENSE":
-                    hidden_lays = keras.layers.Dense(unit, activation=activation_func,
-                                                     kernel_initializer=keras.initializers.random_normal)
-                elif nn_type.upper() == "LSTM":
-                    hidden_lays = keras.layers.LSTM(unit, activation=activation_func, return_sequences=return_sequences)
-                else:
-                    raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
-                model.add(hidden_lays)
-print(model.summary())
+    model.add(GenLayers.create_input_layer())
+    for layer in GenLayers.generate_hidden_layer():
+        model.add(layer)
+    print(model.summary())
 
     # This applies to only OwnPred usage.
     # shuffle order is right for the showTrainTest method, but using pandas.concat,

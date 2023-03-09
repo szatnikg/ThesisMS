@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 import time
 from pathlib import Path
 import os
-
+from tryout import Layers
 class InputProcessing():
 
     def __init__(self, x=[], y=[],
@@ -28,7 +28,10 @@ class InputProcessing():
 
         self.preprocessed = False
 
-    def normalize_data(self, features= [], scale_type="normal", label_feature_name="y"):
+    def normalize_data(self, features= [], is_normalize=True, scale_type="normal", label_feature_name="y"):
+
+        if not is_normalize:
+            return
         # normalizing data by choosen features respectively
         self.scale_type = scale_type
         self.scale_x = DataProcessing.Scaler(features=features)
@@ -159,17 +162,21 @@ class InputProcessing():
         return new_range
 
 
-class NeuralNetwork(InputProcessing):
+class NeuralNetwork(InputProcessing, Layers):
 
     def __init__(self, model_name,
                  x=[], y=[],
-                 OwnPred_x=[], OwnPred_y=[]):
+                 OwnPred_x=[], OwnPred_y=[],
+                 network_structure= {}):
         proj_folder = Path().absolute()  # alternative: Path(__file__).parent.resolve()
         data_folder = os.path.join(proj_folder, "..", "project_data")
 
         if not os.path.exists(data_folder):
             os.mkdir(data_folder)
-        super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
+
+        super(InputProcessing).__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
+        super(Layers, self).__init__(network_structure)
+
         self.model_name = model_name
         self.model_path = os.path.join(data_folder, f"{self.model_name}.h5")
 
@@ -216,8 +223,19 @@ class NeuralNetwork(InputProcessing):
         if self.loaded_model:
             self.model = keras.models.load_model(self.model_path)
             print(self.model.summary())
+            return
 
-        if self.nn_type=="ann":
+        # if network_structure (self.layer_obj in Layer class) provided
+        # use Layers Child-Class to create model for config,
+        # otherwise use built in structure.
+        if self.layer_obj:
+            inp = self.create_input_layer()
+            self.model.add(inp)
+            for hidden_layer in self.generate_hidden_layer():
+                self.model.add(hidden_layer)
+            return
+
+        if self.nn_type == "ann":
             input_lay = keras.Input(shape=(self.x_train.shape[1],))
             # constructing NN architecture
 
@@ -341,12 +359,3 @@ if __name__ == "__main__":
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
     pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})
-
-
-
-    # This applies to only OwnPred usage.
-    # shuffle order is right for the showTrainTest method, but using pandas.concat,
-    # the indexes are applied, so x_test,y_test must be resetted.
-    # output = pd.concat([NN.x_test.reset_index(inplace=False, drop=False),
-    #                         NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
-    # output.to_csv("result.csv")
