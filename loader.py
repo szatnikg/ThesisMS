@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 import os
-from keras import layers, Input, initializers
+from keras import layers, Input, initializers, Sequential
 # Note:
 # resetting and dropping old indexes can be done by:
 # my_df.reset_index(inplace=True, drop=True)
@@ -49,6 +49,8 @@ class Source:
         self.KEY_hyper_shuffle = "shuffle"
         self.KEY_hyper_is_normalize = "want_to_normalize"
         self.KEY_hyper_nn_type = "high_level_nn_type"
+        self.KEY_hyper_model_lib = "model_lib"
+        self.KEY_hyper_show_chart = "show_plot"
 
 class LoadConfig(Source):
     def __init__(self,config_path=None):
@@ -61,6 +63,7 @@ class LoadConfig(Source):
             self.config_file = json.load(json_file)
 
         self.model_name = self.config_file[self.KEY_hyper_model_name]
+        self.show_plot = self.config_file[self.KEY_hyper_show_chart]
         self.epoch = self.config_file[self.KEY_hyper_epoch]
         self.batch_size = self.config_file[self.KEY_hyper_batch_size]
         self.loaded_model = self.config_file[self.KEY_hyper_loaded_model]
@@ -73,10 +76,7 @@ class LoadConfig(Source):
         self.shuffle = self.config_file[self.KEY_hyper_shuffle]
         self.is_normalize = self.config_file[self.KEY_hyper_is_normalize]
         self.nn_type = self.config_file[self.KEY_hyper_nn_type]
-
-    def write_config(self):
-        with open("project_data-folder..+self.config_path", "w") as json_output:
-            json.dump(self.config_file,json_output)
+        self.model_lib = self.config_file[self.KEY_hyper_model_lib]
 
 class Layers:
     def __init__(self, layer_obj={}):
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     GenLayers = Layers(network_structure)
 
 
-    model = keras.Sequential()
+    model = Sequential()
     model.add(GenLayers.create_input_layer())
     for layer in GenLayers.generate_hidden_layer():
         model.add(layer)

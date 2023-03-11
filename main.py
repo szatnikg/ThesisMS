@@ -1,14 +1,16 @@
 import pandas as pd
 from NeuralNetwork import NeuralNetwork
-from tryout import LoadConfig
+from loader import LoadConfig
 
 class NN_interface(LoadConfig):
 
-      def __init__(self, x, y, Ownpred_x=[], Ownpred_y=[]):
+      def __init__(self, x, y, Ownpred_x=[], Ownpred_y=[],
+                   x_columns=["x"], y_columns=["y"]):
             super(NN_interface, self).__init__()
 
             self.NN = NeuralNetwork(model_name=self.model_name, x=x, y=y,
-                 OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y, network_structure=self.config_file)
+                 OwnPred_x=Ownpred_x, OwnPred_y=Ownpred_y, network_structure=self.config_file,
+                                    x_columns=x_columns, y_columns=y_columns)
 
             if self.nn_type == "rnn":
                   self.run_rnn()
@@ -27,12 +29,14 @@ class NN_interface(LoadConfig):
 
             self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.NN.predictNN()
-            self.NN.denormalize_data(is_preds_normalized=True)
+            if self.NN.preprocessed:
+                  self.NN.denormalize_data(is_preds_normalized=True)
+            else: self.NN.convert_to_df()
             self.NN.evaluate()
 
             # self.NN.convert_to_df() # if we do not denormalize the data (so normalization wasn't called) they won't be converted to pd.dataframes
-            self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
-            self.NN.save_model()
+            if self.show_plot : self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
+            self.NN.save_model(model_lib=self.model_lib)
 
       def run_ann(self):
             self.NN.normalize_data(features=[], is_normalize=self.is_normalize, scale_type=self.scale_type, label_feature_name=self.label_feature_name)
@@ -41,12 +45,31 @@ class NN_interface(LoadConfig):
             self.NN.build_model(nn_type='ann',loaded_model=self.loaded_model)
             self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.NN.predictNN()
-
-            self.NN.denormalize_data(is_preds_normalized=True)
+            if self.NN.preprocessed:
+                  self.NN.denormalize_data(is_preds_normalized=True)
+            else: self.NN.convert_to_df()
 
             self.NN.evaluate()
-            self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
-            self.NN.save_model()
+            if self.show_plot:
+                  self.NN.showValLoss()
+                  self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
+            self.NN.save_model(model_lib=self.model_lib)
+
+      @staticmethod
+      def compare_performance( x_test, y_test, preds, output_full_path):
+            # run comparison for test_files and individual purposes
+            # x_test, y_test should suffer index resetting if they were shuffled!
+            # use reset_index(drop=False) on pd.Dataframe object.
+            # output file is in csv format
+
+            comparision_df = pd.concat([x_test, y_test, preds], axis=1)
+            comparision_df["rel_error"] = abs(y_test - preds) / y_test
+            comparision_df["rel_error_percent"] = (abs(y_test - preds) / y_test ) * 100
+            comparision_df["abs_error"] = abs(y_test - preds) / (y_test.max() - y_test.min())
+            comparision_df["abs_error_percent"] = (abs(y_test - preds) / (y_test.max() - y_test.min()) )*100
+
+            comparision_df.to_csv(output_full_path + ".csv", index=False)
+            return comparision_df
 
 
 # ToDO write Tester class with unittests.
@@ -77,4 +100,4 @@ if not type(y_columns) == str:
 # show_column_name = "x"
 
 if __name__ == "__main__":
-      Runner = NN_interface(data[x_columns], data[y_columns])
+      Runner = NN_interface(data[x_columns], data[y_columns], x_columns=x_columns, y_columns=y_columns)

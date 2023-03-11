@@ -1,4 +1,21 @@
 {
+    "model_name": "timeseries_prediction",
+    "high_level_nn_type": "rnn",
+    "epoch": 200,
+    "batch_size": 10,
+    "loaded_model": 0,
+    "sequence_length": 1,
+    "train_split": 0.76,
+    "further_training": 1,
+    "scale_type": "normal",
+    "label_feature_name_for_normalization": "y",
+    "show_column_name_in_plot": "x",
+    "shuffle": 1,
+    "want_to_normalize": 1,
+
+
+
+
     "input_layer": { "shape_1": "None",
                     "shape_2": "n_features"
                     },

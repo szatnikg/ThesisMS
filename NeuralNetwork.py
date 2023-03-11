@@ -8,11 +8,14 @@ from matplotlib import pyplot as plt
 import time
 from pathlib import Path
 import os
-from tryout import Layers
+import json
+from loader import Layers
+
 class InputProcessing():
 
     def __init__(self, x=[], y=[],
-                 OwnPred_x=[], OwnPred_y=[]):
+                 OwnPred_x=[], OwnPred_y=[],
+                 x_columns=["x"], y_columns=["y"]):
         # creating class variables
         if len(x) == 0 or len(y) == 0:
             raise ValueError("Provide x and y value!")
@@ -20,11 +23,9 @@ class InputProcessing():
         self.OwnPred_y = OwnPred_y.copy()
         self.x = x
         self.y = y
-        # # this is redundant, class user shouldn't divide df to x,y AND buggy.
-        # self.x_columns = self.x.columns
-        # self.y_columns = self.y.columns
-        # self.x_columns = [col for col in self.x_columns]
-        # self.y_columns = [col for col in self.y_columns]
+
+        self.x_columns = x_columns
+        self.y_columns = y_columns
 
         self.preprocessed = False
 
@@ -167,18 +168,18 @@ class NeuralNetwork(InputProcessing, Layers):
     def __init__(self, model_name,
                  x=[], y=[],
                  OwnPred_x=[], OwnPred_y=[],
-                 network_structure= {}):
+                 network_structure= {},
+                 x_columns=["x"], y_columns=["y"]):
         proj_folder = Path().absolute()  # alternative: Path(__file__).parent.resolve()
-        data_folder = os.path.join(proj_folder, "..", "project_data")
+        self.data_folder = os.path.join(proj_folder, "..", "project_data")
+        self.network_structure = network_structure
+        if not os.path.exists(self.data_folder):
+            os.mkdir(self.data_folder)
 
-        if not os.path.exists(data_folder):
-            os.mkdir(data_folder)
-
-        super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y)
-        self.layer_generator = Layers.__init__(self, layer_obj=network_structure)
+        super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y, x_columns=x_columns, y_columns=y_columns)
+        self.layer_generator = Layers.__init__(self, layer_obj=self.network_structure)
 
         self.model_name = model_name
-        self.model_path = os.path.join(data_folder, f"{self.model_name}.h5")
 
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
@@ -212,7 +213,7 @@ class NeuralNetwork(InputProcessing, Layers):
         plt.ylabel("Evaluation feature")
         plt.legend()
         plt.show()
-        print("preds:", self.preds, "\n", "test: ", self.y_test)
+        # print("preds:", self.preds, "\n", "test: ", self.y_test)
 
     def build_model(self, nn_type="ann", loaded_model=False, classification=False):
         # building an RNN from scratch or loading an already existing model
@@ -301,7 +302,6 @@ class NeuralNetwork(InputProcessing, Layers):
             ## NN training time stop
             end = time.time()
             self.runtime = end - start
-            if self.nn_type == 'ann': self.showValLoss()
 
             if earlystop:
                 self.es = EarlyStop.stopped_epoch
@@ -324,9 +324,9 @@ class NeuralNetwork(InputProcessing, Layers):
         # This has to be called, after postprocessing (denormalization),
         # to match the y_test data with the (previously normalized, now denormalized) preds-data
         # ToDo get R^2 func or similar for evaluation...
-        print("x_test size:", len(self.x_test), "\n",
-              "preds size ", len(self.preds), "\n",
-              "y_test_size: ", len(self.y_test))
+        # print("x_test size:", len(self.x_test), "\n",
+        #       "preds size ", len(self.preds), "\n",
+        #       "y_test_size: ", len(self.y_test))
 
         if len(self.y_test) > 0:
             # get data about predictions
@@ -349,8 +349,16 @@ class NeuralNetwork(InputProcessing, Layers):
             # print("mae:", self.mae, "\n",
             #       "mse:", mse,"\n")
 
-    def save_model(self):
-        self.model.save(self.model_path)
+    def save_model(self, model_lib=0):
+        if not model_lib:
+            model_lib = os.path.join(self.data_folder, self.model_name)
+        if not os.path.exists(model_lib):
+            os.mkdir(model_lib)
+        self.model.save(os.path.join(model_lib, f"{self.model_name}.h5"))
+
+        with open(os.path.join(model_lib, self.model_name + "_config.json"), "w") as json_output:
+            json.dump(self.network_structure, json_output)
+
 
 if __name__ == "__main__":
 
