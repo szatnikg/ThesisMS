@@ -1,0 +1,40 @@
+{
+    "model_name": "qubic_prediction",
+    "high_level_nn_type": "ann",
+    "epoch": 200,
+    "batch_size": 10,
+    "loaded_model": 0,
+    "sequence_length": 1,
+    "train_split": 0.76,
+    "further_training": 1,
+    "scale_type": "normal",
+    "label_feature_name_for_normalization": "y",
+    "show_column_name_in_plot": "x",
+    "shuffle": 1,
+    "want_to_normalize": 1,
+
+    "input_layer": { "type":"Dense",
+                    "shape_1": "n_features",
+                    "shape_2": "None"
+                    },
+
+    "hidden_layers": [ {  "type": "Dense",
+                "unit": 64 ,
+                "initializer": "random_normal",
+                "activation": "relu",
+                "return_sequences": "false"
+                  },
+                    {  "type": "Dense",
+                "unit": 32 ,
+                "initializer": "random_normal",
+                "activation": "relu",
+                "return_sequences": "false"
+                   },
+                    {"type": "Dense",
+                "unit": 1 ,
+                "initializer": "None",
+                "activation": "None",
+                "return_sequences": "None"
+                   }
+                    ]
+    }
