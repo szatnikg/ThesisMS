@@ -178,8 +178,8 @@ class NeuralNetwork(InputProcessing, Layers):
 
         super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y, x_columns=x_columns, y_columns=y_columns)
         self.layer_generator = Layers.__init__(self, layer_obj=self.network_structure)
-
         self.model_name = model_name
+        self.model_path = os.path.join(self.data_folder, self.model_name, self.model_name + ".h5")
 
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
@@ -213,7 +213,7 @@ class NeuralNetwork(InputProcessing, Layers):
         plt.ylabel("Evaluation feature")
         plt.legend()
         plt.show()
-        # print("preds:", self.preds, "\n", "test: ", self.y_test)
+        # print("preds:", self.preds.shape, "\n", "test: ", self.y_test.shape)
 
     def build_model(self, nn_type="ann", loaded_model=False, classification=False):
         # building an RNN from scratch or loading an already existing model
@@ -357,7 +357,7 @@ class NeuralNetwork(InputProcessing, Layers):
         self.model.save(os.path.join(model_lib, f"{self.model_name}.h5"))
 
         with open(os.path.join(model_lib, self.model_name + "_config.json"), "w") as json_output:
-            json.dump(self.network_structure, json_output)
+            json.dump(self.network_structure, json_output, indent=4)
         return model_lib
 
 if __name__ == "__main__":

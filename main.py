@@ -35,8 +35,9 @@ class NN_interface(LoadConfig):
             self.NN.evaluate()
 
             # self.NN.convert_to_df() # if we do not denormalize the data (so normalization wasn't called) they won't be converted to pd.dataframes
-            if self.show_plot : self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
-            self.NN.save_model(model_lib=self.model_lib)
+            if self.show_plot:
+                  self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
+            self.model_lib = self.NN.save_model(model_lib=self.model_lib)
 
       def run_ann(self):
             self.NN.normalize_data(features=[], is_normalize=self.is_normalize, scale_type=self.scale_type, label_feature_name=self.label_feature_name)
@@ -63,29 +64,27 @@ class NN_interface(LoadConfig):
             # output file is in csv format
 
             comparision_df = pd.concat([x_test, y_test, preds], axis=1)
-            comparision_df["rel_error"] = abs(y_test - preds) / y_test
-            comparision_df["rel_error_percent"] = (abs(y_test - preds) / y_test ) * 100
-            comparision_df["abs_error"] = abs(y_test - preds) / (y_test.max() - y_test.min())
-            comparision_df["abs_error_percent"] = (abs(y_test - preds) / (y_test.max() - y_test.min()) )*100
+            comparision_df["rel_error"] = abs(y_test - preds) / abs(y_test)
+            comparision_df["rel_error_percent"] = (abs(y_test - preds) / abs(y_test) ) * 100
+            comparision_df["abs_error"] = abs(y_test - preds) / abs(y_test.max() - y_test.min())
+            comparision_df["abs_error_percent"] = (abs(y_test - preds) / abs(y_test.max() - y_test.min()) )*100
 
             comparision_df.to_csv(path.join(output_path, f"{model_name}.csv"), index=False)
             return comparision_df
 
 
-# ToDO write Tester class with unittests.
-
-# from GenerateData import genSinwawe
-# data = genSinwawe(2, 1340)
+from GenerateData import genSinwawe
+data = genSinwawe(2, 1140)
 # from GenerateData import genUnNormalizedData
 # data = genUnNormalizedData(0, 800,type='square', step=1)
-data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
-data_ownpred = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
+# data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+# data_ownpred = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
-# data = pd.DataFrame(data)
+
 # x, y specific values for
-x_columns = data.columns[:-2]
+x_columns = data.columns[:-1]
 x_columns = [col for col in x_columns]
-y_columns = data.columns[-2]
+y_columns = data.columns[-1]
 if not type(y_columns) == str:
       y_columns = [col for col in y_columns]
 else:
@@ -93,9 +92,15 @@ else:
 
 if __name__ == "__main__":
       Runner = NN_interface(data[x_columns], data[y_columns],
-                            Ownpred_x=data_ownpred[x_columns], Ownpred_y=data_ownpred[y_columns],
+                            Ownpred_x=[], Ownpred_y=[],
                             x_columns=x_columns, y_columns=y_columns)
       # potentially run comparison:
-      print(Runner.NN.y_test)
-      Runner.compare_performance(Runner.NN.x_test, Runner.NN.y_test[Runner.label_feature_name], Runner.NN.preds["preds"],
+      # first reset_indexes to match with preds
+      y_test = Runner.NN.y_test[Runner.label_feature_name]
+      y_test = y_test.reset_index(drop=True)
+      x_test = Runner.NN.x_test
+      x_test = x_test.reset_index(drop=True)
+      preds = Runner.NN.preds["preds"]
+
+      Runner.compare_performance(x_test, y_test, preds,
                                  Runner.model_lib, Runner.model_name)

@@ -30,7 +30,7 @@
                 "unit": 30 ,
                 "initializer": "random_normal",
                 "activation": "relu",
-                "return_sequences": 0
+                "return_sequences": 1
                    },
                    {"type": "LSTM",
                     "unit": 30,
