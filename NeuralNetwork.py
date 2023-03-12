@@ -206,8 +206,8 @@ class NeuralNetwork(InputProcessing, Layers):
         if with_pred:
             plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=6)
         plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=6)
-        if len(self.OwnPred_x) == 0:
-            plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
+        # if len(self.OwnPred_x) == 0:
+        plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.xlabel(column_name)
         plt.ylabel("Evaluation feature")
@@ -230,7 +230,7 @@ class NeuralNetwork(InputProcessing, Layers):
         # use Layers Child-Class to create model for config,
         # otherwise use built in structure.
         if self.layer_obj:
-            inp = self.create_input_layer()
+            inp = self.create_input_layer(self.n_features)
             self.model.add(inp)
             for hidden_layer in self.generate_hidden_layer():
                 self.model.add(hidden_layer)
@@ -358,12 +358,12 @@ class NeuralNetwork(InputProcessing, Layers):
 
         with open(os.path.join(model_lib, self.model_name + "_config.json"), "w") as json_output:
             json.dump(self.network_structure, json_output)
-
+        return model_lib
 
 if __name__ == "__main__":
 
     # data = GenerateData.genSinwawe(1,300)
-    # own_pred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
+    own_pred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
     pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})

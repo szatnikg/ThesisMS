@@ -94,7 +94,7 @@ class Layers:
         self.KEY_hidden_initializer = "initializer"
         self.layer_obj = layer_obj
 
-    def create_input_layer(self):
+    def create_input_layer(self, n_features):
         # Input layer decisions are not thought through
         value = self.layer_obj[self.KEY_input_spec]
 
@@ -103,11 +103,11 @@ class Layers:
         if shape_I.lower() == "none":
             shape_I = None
         elif shape_I.lower() == "n_features":
-            shape_I = 1
+            shape_I = n_features
         if shape_II.lower() == "none":
             shape_II = None
         elif shape_II.lower() == "n_features":
-            shape_II = 1
+            shape_II = n_features
 
         if value[self.KEY_input_type].lower() == "dense":
             input_layer = Input(shape=(shape_I,))

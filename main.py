@@ -1,7 +1,7 @@
 import pandas as pd
 from NeuralNetwork import NeuralNetwork
 from loader import LoadConfig
-
+from os import path
 class NN_interface(LoadConfig):
 
       def __init__(self, x, y, Ownpred_x=[], Ownpred_y=[],
@@ -45,18 +45,18 @@ class NN_interface(LoadConfig):
             self.NN.build_model(nn_type='ann',loaded_model=self.loaded_model)
             self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.NN.predictNN()
-            if self.NN.preprocessed:
-                  self.NN.denormalize_data(is_preds_normalized=True)
-            else: self.NN.convert_to_df()
+
+            self.NN.denormalize_data(is_preds_normalized=True)
+            self.NN.convert_to_df()
 
             self.NN.evaluate()
             if self.show_plot:
                   self.NN.showValLoss()
                   self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
-            self.NN.save_model(model_lib=self.model_lib)
+            self.model_lib = self.NN.save_model(model_lib=self.model_lib)
 
       @staticmethod
-      def compare_performance( x_test, y_test, preds, output_full_path):
+      def compare_performance( x_test, y_test, preds, output_path, model_name):
             # run comparison for test_files and individual purposes
             # x_test, y_test should suffer index resetting if they were shuffled!
             # use reset_index(drop=False) on pd.Dataframe object.
@@ -68,7 +68,7 @@ class NN_interface(LoadConfig):
             comparision_df["abs_error"] = abs(y_test - preds) / (y_test.max() - y_test.min())
             comparision_df["abs_error_percent"] = (abs(y_test - preds) / (y_test.max() - y_test.min()) )*100
 
-            comparision_df.to_csv(output_full_path + ".csv", index=False)
+            comparision_df.to_csv(path.join(output_path, f"{model_name}.csv"), index=False)
             return comparision_df
 
 
@@ -76,28 +76,26 @@ class NN_interface(LoadConfig):
 
 # from GenerateData import genSinwawe
 # data = genSinwawe(2, 1340)
-from GenerateData import genUnNormalizedData
-data = genUnNormalizedData(0, 800,type='square', step=1)
-# data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+# from GenerateData import genUnNormalizedData
+# data = genUnNormalizedData(0, 800,type='square', step=1)
+data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+data_ownpred = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
 # data = pd.DataFrame(data)
-x_columns = data.columns[:-1]
+# x, y specific values for
+x_columns = data.columns[:-2]
 x_columns = [col for col in x_columns]
-y_columns = data.columns[-1]
+y_columns = data.columns[-2]
 if not type(y_columns) == str:
       y_columns = [col for col in y_columns]
-
-# these parameters will come from a UI or config-file.
-# n_input = 6
-# batch_size = 6
-# epoch = 200
-# train_split = 0.75
-
-# model_name = "qubic_with_minus"
-# label_feature_name = "y"
-# scale_type = "normal"
-# loaded_model = False
-# show_column_name = "x"
+else:
+      y_columns = [y_columns]
 
 if __name__ == "__main__":
-      Runner = NN_interface(data[x_columns], data[y_columns], x_columns=x_columns, y_columns=y_columns)
+      Runner = NN_interface(data[x_columns], data[y_columns],
+                            Ownpred_x=data_ownpred[x_columns], Ownpred_y=data_ownpred[y_columns],
+                            x_columns=x_columns, y_columns=y_columns)
+      # potentially run comparison:
+      print(Runner.NN.y_test)
+      Runner.compare_performance(Runner.NN.x_test, Runner.NN.y_test[Runner.label_feature_name], Runner.NN.preds["preds"],
+                                 Runner.model_lib, Runner.model_name)

@@ -172,7 +172,7 @@ class Tester(ConfigContainer):
 
         comparision_df = self.tester_IF.compare_performance(x_test, y_test[self.tester_IF.label_feature_name],
                                                             self.tester_IF.NN.preds["preds"],
-                                                            os.path.join(self.unit_lib, self.model_name))
+                                                            self.unit_lib, self.model_name)
 
         self.performed_value = comparision_df.sort_values("rel_error_percent", ignore_index=True)[
                                : int(len(comparision_df) * 0.8)].mean()
