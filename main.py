@@ -23,7 +23,8 @@ class NN_interface(LoadConfig):
             self.NN.split_train_test(train_split=self.train_split, shuffle=False)
             # it produces x_train, x_test, y_train, y_test if shuffle was true, in shuffled format as pd.dataframes
             self.NN.convert_to_array()
-            self.NN.call_convert_to_timeseries(sequence_length=self.sequence_length, batch_size=self.batch_size)
+            self.NN.create_timeseries_deviation(sequence_length=self.sequence_length)
+            self.NN.call_convert_to_timeseries(batch_size=self.batch_size)
 
             self.NN.build_model(nn_type='rnn', loaded_model=self.loaded_model)
 
@@ -48,7 +49,7 @@ class NN_interface(LoadConfig):
             self.NN.predictNN()
 
             self.NN.denormalize_data(is_preds_normalized=True)
-            self.NN.convert_to_df()
+            if not self.NN.preprocessed: self.NN.convert_to_df()
 
             self.NN.evaluate()
             if self.show_plot:

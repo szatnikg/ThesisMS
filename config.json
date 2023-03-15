@@ -4,7 +4,7 @@
     "epoch": 200,
     "batch_size": 10,
     "loaded_model": 0,
-    "sequence_length": 5,
+    "sequence_length": 4,
     "train_split": 0.76,
     "further_training": 1,
     "scale_type": "normal",
@@ -14,10 +14,6 @@
     "want_to_normalize": 1,
     "show_plot": 1,
     "model_lib": 0,
-
-
-
-
 
     "input_layer": {"type": "LSTM",
                     "shape_1": "None",

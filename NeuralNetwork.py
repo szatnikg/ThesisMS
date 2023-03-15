@@ -136,11 +136,11 @@ class InputProcessing():
                                                                pd.DataFrame(self.x_test, columns=self.x_columns), \
                                                                pd.DataFrame(self.y_test, columns=self.y_columns)
 
-    def call_convert_to_timeseries(self, sequence_length, batch_size):
+    def call_convert_to_timeseries(self, batch_size):
 
-        self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=sequence_length, batch_size=batch_size)
-        self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=sequence_length, batch_size=batch_size)
-
+        self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=self.sequence_length, batch_size=batch_size)
+        self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=self.sequence_length, batch_size=batch_size)
+        return self.fit_data, self.pred_data
     @staticmethod
     def convert_to_timeseries(data, target=None, sequence_length=1, batch_size=1):
 
@@ -149,16 +149,29 @@ class InputProcessing():
             targets=target,
             sequence_length=sequence_length,
             sequence_stride=1,
+
             shuffle=False,
             batch_size=batch_size)
         return output
+
+    def create_timeseries_deviation(self, sequence_length=1):
+
+        # data_list = [self.y_train, self.y_test]
+        # converted_list = []
+        self.sequence_length = sequence_length
+
+        for sequence_number in range(0,self.sequence_length-1):
+            self.y_train = self.handle_timeseries_deviation(self.y_train)
+        # converted_list.append(self.handle_timeseries_deviation(elem))
+        # self.y_train, self.y_test = converted_list[0], converted_list[1]
+        return self.y_train
 
     @staticmethod
     def handle_timeseries_deviation(np_range):
 
         original_shape = np_range.shape
-        inserted_range = np.insert(np_range, 0, 0)
-        new_range = np.delete(inserted_range, len(np_range)) \
+        inserted_range = np.insert(np_range, len(np_range), 0)
+        new_range = np.delete(inserted_range, 0) \
             .reshape(original_shape)
         return new_range
 
