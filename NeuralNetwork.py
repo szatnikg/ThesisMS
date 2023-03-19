@@ -136,10 +136,16 @@ class InputProcessing():
                                                                pd.DataFrame(self.x_test, columns=self.x_columns), \
                                                                pd.DataFrame(self.y_test, columns=self.y_columns)
 
-    def call_convert_to_timeseries(self, sequence_length, batch_size):
-
-        self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=sequence_length, batch_size=batch_size)
-        self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=sequence_length, batch_size=batch_size)
+    def call_convert_to_timeseries(self, batch_size, sequence_length=None):
+        if sequence_length:
+            self.sequence_length = sequence_length
+        if len(self.x_train) > self.sequence_length:
+            self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=self.sequence_length, batch_size=batch_size)
+        else: self.fit_data = None
+        if len(self.x_test) > self.sequence_length:
+            self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=self.sequence_length, batch_size=batch_size)
+        else: self.pred_data = None
+        return self.fit_data, self.pred_data
 
     @staticmethod
     def convert_to_timeseries(data, target=None, sequence_length=1, batch_size=1):
@@ -149,16 +155,29 @@ class InputProcessing():
             targets=target,
             sequence_length=sequence_length,
             sequence_stride=1,
+
             shuffle=False,
             batch_size=batch_size)
         return output
+
+    def create_timeseries_deviation(self, sequence_length=1):
+
+        # data_list = [self.y_train, self.y_test]
+        # converted_list = []
+        self.sequence_length = sequence_length
+
+        for sequence_number in range(0, self.sequence_length-1):
+            self.y_train = self.handle_timeseries_deviation(self.y_train)
+        # converted_list.append(self.handle_timeseries_deviation(elem))
+        # self.y_train, self.y_test = converted_list[0], converted_list[1]
+        return self.y_train
 
     @staticmethod
     def handle_timeseries_deviation(np_range):
 
         original_shape = np_range.shape
-        inserted_range = np.insert(np_range, 0, 0)
-        new_range = np.delete(inserted_range, len(np_range)) \
+        inserted_range = np.insert(np_range, len(np_range), 0)
+        new_range = np.delete(inserted_range, 0) \
             .reshape(original_shape)
         return new_range
 
@@ -178,8 +197,8 @@ class NeuralNetwork(InputProcessing, Layers):
 
         super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y, x_columns=x_columns, y_columns=y_columns)
         self.layer_generator = Layers.__init__(self, layer_obj=self.network_structure)
-
         self.model_name = model_name
+        self.model_path = os.path.join(self.data_folder, self.model_name, self.model_name + ".h5")
 
     def showValLoss(self):
         hist = pd.DataFrame(self.history_model.history)
@@ -206,14 +225,14 @@ class NeuralNetwork(InputProcessing, Layers):
         if with_pred:
             plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=6)
         plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=6)
-        if len(self.OwnPred_x) == 0:
-            plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
+        # if len(self.OwnPred_x) == 0:
+        plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.xlabel(column_name)
         plt.ylabel("Evaluation feature")
         plt.legend()
         plt.show()
-        # print("preds:", self.preds, "\n", "test: ", self.y_test)
+        # print("preds:", self.preds.shape, "\n", "test: ", self.y_test.shape)
 
     def build_model(self, nn_type="ann", loaded_model=False, classification=False):
         # building an RNN from scratch or loading an already existing model
@@ -230,7 +249,7 @@ class NeuralNetwork(InputProcessing, Layers):
         # use Layers Child-Class to create model for config,
         # otherwise use built in structure.
         if self.layer_obj:
-            inp = self.create_input_layer()
+            inp = self.create_input_layer(self.n_features)
             self.model.add(inp)
             for hidden_layer in self.generate_hidden_layer():
                 self.model.add(hidden_layer)
@@ -357,13 +376,10 @@ class NeuralNetwork(InputProcessing, Layers):
         self.model.save(os.path.join(model_lib, f"{self.model_name}.h5"))
 
         with open(os.path.join(model_lib, self.model_name + "_config.json"), "w") as json_output:
-            json.dump(self.network_structure, json_output)
-
+            json.dump(self.network_structure, json_output, indent=4)
+        return model_lib
 
 if __name__ == "__main__":
-
-    # data = GenerateData.genSinwawe(1,300)
-    # own_pred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
     pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})

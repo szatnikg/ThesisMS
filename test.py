@@ -36,7 +36,7 @@ class ConfigContainer:
                                "unit": 64,
                                "initializer": "random_normal",
                                "activation": "relu",
-                               "return_sequences": "false"
+                               "return_sequences": "true"
                                },
                               {"type": "Dense",
                                "unit": 32,
@@ -99,6 +99,50 @@ class ConfigContainer:
         }
         return self.o
 
+    def container_III(self):
+        self.o = {
+    "model_name": "timeseries_prediction",
+    "high_level_nn_type": "rnn",
+    "epoch": 200,
+    "batch_size": 10,
+    "loaded_model": 0,
+    "sequence_length": 4,
+    "train_split": 0.76,
+    "further_training": 1,
+    "scale_type": "normal",
+    "label_feature_name_for_normalization": "y",
+    "show_column_name_in_plot": "x",
+    "shuffle": 1,
+    "want_to_normalize": 1,
+    "show_plot": 0,
+    "model_lib": 0,
+
+    "input_layer": {"type": "LSTM",
+                    "shape_1": "None",
+                    "shape_2": "n_features"
+                    },
+
+    "hidden_layers": [ {  "type": "LSTM",
+                "unit": 30 ,
+                "initializer": "random_normal",
+                "activation": "relu",
+                "return_sequences": "true"
+                  },
+                    {  "type": "LSTM",
+                "unit": 30 ,
+                "initializer": "random_normal",
+                "activation": "relu",
+                "return_sequences": "false"
+                   },
+                    {"type": "Dense",
+                "unit": 1 ,
+                "initializer": "None",
+                "activation": "None",
+                "return_sequences": "None"
+                   }
+                    ]
+    }
+        return self.o
 
 class Tester(ConfigContainer):
 
@@ -121,14 +165,16 @@ class Tester(ConfigContainer):
         from GenerateData import genUnNormalizedData
         data_I = genUnNormalizedData(0, 800, type='square', step=1)
         data_II = genUnNormalizedData(0, 800, type='root', step=1)
+        data_III = genSinwawe(2,1140)
 
 
-        should_perform_list = [5, 6]
+        should_perform_list = [5, 6, 9]
         model_name_list = ["square_genData_reg_normalized",
-                           "root_genData_reg_no_normalization"]
+                           "root_genData_reg_no_normalization",
+                           "sinWawe_timeseries_normalized"]
         # modify config.json to test-specifications
-        config_file_list = [self.container_I(), self.container_II()]
-        data_list = [data_I, data_II]
+        config_file_list = [self.container_I(), self.container_II(), self.container_III()]
+        data_list = [data_I, data_II, data_III]
 
         for curr_param in range(len(model_name_list)):
 
@@ -143,9 +189,10 @@ class Tester(ConfigContainer):
                     message = f"unit_test {curr_param+1}: {self.model_name}  ----  PASSED" \
                               + "\n" +"                 error %: " + str(round(self.performed_value, 2)) + " required: "+ str(should_perform)
                 else:
-                    raise AssertionError(f"unit_test {curr_param+1}: {self.model_name} error % too high! : ", str(round(self.performed_value, 2)), " required: ", str(should_perform))
+                    print(f"unit_test {curr_param+1}: {self.model_name} error % too high! : ", str(round(self.performed_value, 2)), " required: ", str(should_perform))
+                    raise AssertionError
             except:
-                    message = f"{self.model_name}  !!!!  FAILED "
+                    message = f"unit_test {curr_param+1}: {self.model_name}  !!!!  FAILED "
 
             yield message
 
@@ -172,7 +219,7 @@ class Tester(ConfigContainer):
 
         comparision_df = self.tester_IF.compare_performance(x_test, y_test[self.tester_IF.label_feature_name],
                                                             self.tester_IF.NN.preds["preds"],
-                                                            os.path.join(self.unit_lib, self.model_name))
+                                                            self.unit_lib, self.model_name)
 
         self.performed_value = comparision_df.sort_values("rel_error_percent", ignore_index=True)[
                                : int(len(comparision_df) * 0.8)].mean()
