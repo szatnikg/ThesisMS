@@ -233,19 +233,6 @@ class Tester(ConfigContainer):
 
 if __name__ == "__main__":
 
-    # testing = Tester()
-    # for result in testing.unit_test():
-    #     print(result)
-    import pandas as pd
-    x = pd.DataFrame([1,2,3,4,5,6,7,8,9,10], columns= ["x"])
-    y = pd.DataFrame([100, 200, 300, 400, 500, 600, 700,800,900,1000], columns=["y"])
-    from NeuralNetwork import InputProcessing
-
-    ip = InputProcessing(x, y, x_columns=["x"], y_columns=["y"])
-    ip.split_train_test(train_split=0.76)
-    ip.convert_to_array()
-    y_train = ip.create_timeseries_deviation(sequence_length=5)
-    print("y_train: ",y_train)
-    fit ,pred = ip.call_convert_to_timeseries(1)
-    for i, j in fit:
-        print(i, j)
+    testing = Tester()
+    for result in testing.unit_test():
+        print(result)

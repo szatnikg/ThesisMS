@@ -96,9 +96,9 @@ class Scaler:
             return original
 
 if __name__ == "__main__":
-    df = pd.DataFrame({"x": [40, 234, 452, 1000],
-                       "y": [31, 41, 411, 3300],
-                       "preds": [3103, 34, 1, 3410]})
+    df = pd.DataFrame({"x": [0, 10, 20, 30, 40, 50],
+                       "x2": [1,2,3,4,5,5],
+                       "y": [1,12,23,34,45,55]})
 
     df_nopred = pd.DataFrame({"x": [40, 234, 452, 1000],
                               "y": [31, 41, 411, 3300],
@@ -107,8 +107,8 @@ if __name__ == "__main__":
     # print(df.columns[:-1])
 
 
-    scale = Scaler(df_nopred.columns)
-    a = scale.normalize(df,scale_type="standard")
+    scale = Scaler(df.columns)
+    a = scale.normalize(df, scale_type="normal")
     # a["preds"] = [0.9099442651804048, 0.009680258140217073, 0.0, 1.1]
 
     b = scale.denormalize(a, is_preds_normalized=False)

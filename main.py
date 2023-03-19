@@ -29,11 +29,13 @@ class NN_interface(LoadConfig):
             self.NN.build_model(nn_type='rnn', loaded_model=self.loaded_model)
 
             self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
-            self.NN.predictNN()
-            if self.NN.preprocessed:
-                  self.NN.denormalize_data(is_preds_normalized=True)
-            else: self.NN.convert_to_df()
-            self.NN.evaluate()
+            if len(self.NN.x_test) > 0:
+
+                  self.NN.predictNN()
+                  if self.NN.preprocessed:
+                        self.NN.denormalize_data(is_preds_normalized=True)
+                  else: self.NN.convert_to_df()
+                  self.NN.evaluate()
 
             # self.NN.convert_to_df() # if we do not denormalize the data (so normalization wasn't called) they won't be converted to pd.dataframes
             if self.show_plot:
@@ -74,34 +76,46 @@ class NN_interface(LoadConfig):
             return comparision_df
 
 
-from GenerateData import genSinwawe
-data = genSinwawe(2, 1140)
-# from GenerateData import genUnNormalizedData
-# data = genUnNormalizedData(0, 800,type='square', step=1)
-# data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
-# data_ownpred = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
-
-# x, y specific values for
-x_columns = data.columns[:-1]
-x_columns = [col for col in x_columns]
-y_columns = data.columns[-1]
-if not type(y_columns) == str:
-      y_columns = [col for col in y_columns]
-else:
-      y_columns = [y_columns]
 
 if __name__ == "__main__":
+      from GenerateData import genSinwawe
+
+      data = genSinwawe(7, 1000)
+      # Todo the sinWawe resoultion for OwnPred plays a big role here!! -> should decipher in.
+      # from GenerateData import genSinwawe
+      # ownPred_data = genSinwawe(2, 600, start=0) # 3.1415926535*2*2)
+      # ToDO : represent sinWawe with 0.76 train_split -> it does not know the values between 2pi*0.76 and 2pi
+      # Todo: write docu about timeseries prediction: 2-run is necessary 1. train data with train_split=1
+      #  2. train_split = 0, loaded_model = 1, further_training = 0 -> it creates the prediction perfectly
+      #  , no matter the resolution!
+      # from GenerateData import genUnNormalizedData
+      # data = genUnNormalizedData(0, 800,type='square', step=1)
+      # data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
+      # ownPred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
+
+      # x, y specific values for
+      x_columns = data.columns[:-1]
+      x_columns = [col for col in x_columns]
+      y_columns = data.columns[-1]
+      if not type(y_columns) == str:
+            y_columns = [col for col in y_columns]
+      else:
+            y_columns = [y_columns]
+
+
+
       Runner = NN_interface(data[x_columns], data[y_columns],
+                            # Ownpred_x=ownPred_data[x_columns], Ownpred_y=ownPred_data[y_columns],
                             Ownpred_x=[], Ownpred_y=[],
                             x_columns=x_columns, y_columns=y_columns)
       # potentially run comparison:
       # first reset_indexes to match with preds
-      y_test = Runner.NN.y_test[Runner.label_feature_name]
-      y_test = y_test.reset_index(drop=True)
-      x_test = Runner.NN.x_test
-      x_test = x_test.reset_index(drop=True)
-      preds = Runner.NN.preds["preds"]
-
-      Runner.compare_performance(x_test, y_test, preds,
-                                 Runner.model_lib, Runner.model_name)
+      # y_test = Runner.NN.y_test[Runner.label_feature_name]
+      # y_test = y_test.reset_index(drop=True)
+      # x_test = Runner.NN.x_test
+      # x_test = x_test.reset_index(drop=True)
+      # preds = Runner.NN.preds["preds"]
+      #
+      # Runner.compare_performance(x_test, y_test, preds,
+      #                            Runner.model_lib, Runner.model_name)

@@ -136,11 +136,17 @@ class InputProcessing():
                                                                pd.DataFrame(self.x_test, columns=self.x_columns), \
                                                                pd.DataFrame(self.y_test, columns=self.y_columns)
 
-    def call_convert_to_timeseries(self, batch_size):
-
-        self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=self.sequence_length, batch_size=batch_size)
-        self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=self.sequence_length, batch_size=batch_size)
+    def call_convert_to_timeseries(self, batch_size, sequence_length=None):
+        if sequence_length:
+            self.sequence_length = sequence_length
+        if len(self.x_train) > self.sequence_length:
+            self.fit_data = self.convert_to_timeseries(self.x_train, target=self.y_train, sequence_length=self.sequence_length, batch_size=batch_size)
+        else: self.fit_data = None
+        if len(self.x_test) > self.sequence_length:
+            self.pred_data = self.convert_to_timeseries(self.x_test, target=None, sequence_length=self.sequence_length, batch_size=batch_size)
+        else: self.pred_data = None
         return self.fit_data, self.pred_data
+
     @staticmethod
     def convert_to_timeseries(data, target=None, sequence_length=1, batch_size=1):
 
@@ -160,7 +166,7 @@ class InputProcessing():
         # converted_list = []
         self.sequence_length = sequence_length
 
-        for sequence_number in range(0,self.sequence_length-1):
+        for sequence_number in range(0, self.sequence_length-1):
             self.y_train = self.handle_timeseries_deviation(self.y_train)
         # converted_list.append(self.handle_timeseries_deviation(elem))
         # self.y_train, self.y_test = converted_list[0], converted_list[1]
@@ -374,9 +380,6 @@ class NeuralNetwork(InputProcessing, Layers):
         return model_lib
 
 if __name__ == "__main__":
-
-    # data = GenerateData.genSinwawe(1,300)
-    own_pred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
     pred_x = [] # own_pred_data.iloc[::, :-2]
     pred_y = [] #own_pred_data.iloc[::,-2]  #pd.DataFrame({"y": [j**2 for j in range(460, 560)]})

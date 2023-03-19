@@ -48,10 +48,10 @@ def genUnNormalizedData(data_size_from, data_size_to, type="linear", step=200):
     my_data["y"] = data_y
     return pd.DataFrame(my_data)
 
-def genSinwawe(cycles, resolution):
+def genSinwawe(cycles, resolution, start = 0.0):
 
     length = np.pi * 2 * cycles
-    x_val = np.arange(0, length, length / resolution)
+    x_val = np.arange(start, length, length / resolution)
     counter = 0
     x_season = []
     period = 1
@@ -105,7 +105,7 @@ def linearPlot(my_data):
 
 
 if __name__ == "__main__":
-    df = genSinwawe(3, 100)
+    df = genSinwawe(3, 100, start=3.14159265*4)
     print(df)
     linearPlot(df)
 
