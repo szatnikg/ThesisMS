@@ -297,7 +297,7 @@ class NeuralNetwork(InputProcessing, Layers):
                 decay_steps=20000,
                 decay_rate=0.9)
             self.model.compile(loss=loss,  # mae stands for mean absolute error
-                               optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
+                               optimizer=keras.optimizers.Adam(learning_rate=learning_rate),  # stochastic GD
                                metrics=metrics) # metrics=['accuracy']
         if further_training:
             # training the model
@@ -311,7 +311,7 @@ class NeuralNetwork(InputProcessing, Layers):
                 self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
                                                     epochs=self.epoch,
                                                     batch_size=batch_size, verbose=0,
-                                                    validation_split=0.2,
+                                                    validation_data=(self.x_test[self.x_columns], self.y_test[self.y_columns]),
                                                     callbacks=[EarlyStop])
             else:
                 self.history_model = self.model.fit(self.fit_data, shuffle=True,

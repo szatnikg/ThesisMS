@@ -1,1 +1,23 @@
-{"model_name": "sinWawe_timeseries_normalized", "high_level_nn_type": "rnn", "epoch": 200, "batch_size": 10, "loaded_model": 0, "sequence_length": 4, "train_split": 0.76, "further_training": 1, "scale_type": "normal", "label_feature_name_for_normalization": "y", "show_column_name_in_plot": "x", "shuffle": 1, "want_to_normalize": 1, "show_plot": 0, "model_lib": "C:\\Egyetem\\Diplomamunka\\project\\test\\sinWawe_timeseries_normalized", "input_layer": {"type": "LSTM", "shape_1": "None", "shape_2": "n_features"}, "hidden_layers": [{"type": "LSTM", "unit": 30, "initializer": "random_normal", "activation": "relu", "return_sequences": "true"}, {"type": "LSTM", "unit": 30, "initializer": "random_normal", "activation": "relu", "return_sequences": "false"}, {"type": "Dense", "unit": 1, "initializer": "None", "activation": "None", "return_sequences": "None"}]}
+{"model_name": "half_sin_wawe",
+"high_level_nn_type": "ann",
+
+"epoch": 800, "batch_size": 10,
+"sequence_length": 4,
+ "shuffle": 1,
+ "learning_rate": 1e-2,
+
+"train_split": 0.76,
+"further_training": 1,
+
+"loaded_model": 0,"scale_type": "normal", "label_feature_name_for_normalization": "y",
+
+"show_column_name_in_plot": "x",
+"want_to_normalize": 1, "show_plot": 1,
+
+"model_lib": 0,
+ "input_layer": {"type": "Dense", "shape_1": "n_features", "shape_2": "None"},
+ "hidden_layers": [
+ {"type": "Dense", "unit": 60, "initializer": "ones", "activation": "relu", "return_sequences": "True"},
+ {"type": "Dense", "unit": 60, "initializer": "ones", "activation": "relu", "return_sequences": "False"},
+ {"type": "Dense", "unit": 1, "initializer": "None", "activation": "None", "return_sequences": "None"}]
+}

@@ -28,7 +28,7 @@ class NN_interface(LoadConfig):
 
             self.NN.build_model(nn_type='rnn', loaded_model=self.loaded_model)
 
-            self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
+            self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training, learning_rate=self.learning_rate)
             if len(self.NN.x_test) > 0:
 
                   self.NN.predictNN()
@@ -46,7 +46,7 @@ class NN_interface(LoadConfig):
             self.NN.normalize_data(features=[], is_normalize=self.is_normalize, scale_type=self.scale_type, label_feature_name=self.label_feature_name)
             self.NN.split_train_test(train_split=self.train_split, shuffle=self.shuffle)
 
-            self.NN.build_model(nn_type='ann',loaded_model=self.loaded_model)
+            self.NN.build_model(nn_type='ann', loaded_model=self.loaded_model)
             self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.NN.predictNN()
 
@@ -55,7 +55,7 @@ class NN_interface(LoadConfig):
 
             self.NN.evaluate()
             if self.show_plot:
-                  self.NN.showValLoss()
+                  if not self.loaded_model: self.NN.showValLoss()
                   self.NN.showTrainTest(with_pred=True, column_name=self.show_column_name)
             self.model_lib = self.NN.save_model(model_lib=self.model_lib)
 
@@ -80,8 +80,7 @@ class NN_interface(LoadConfig):
 
 if __name__ == "__main__":
       from GenerateData import genSinwawe
-
-      data = genSinwawe(7, 1000)
+      data = genSinwawe(0.5, 600)
       # Todo the sinWawe resoultion for OwnPred plays a big role here!! -> should decipher in.
       # from GenerateData import genSinwawe
       # ownPred_data = genSinwawe(2, 600, start=0) # 3.1415926535*2*2)
@@ -90,12 +89,12 @@ if __name__ == "__main__":
       #  2. train_split = 0, loaded_model = 1, further_training = 0 -> it creates the prediction perfectly
       #  , no matter the resolution!
       # from GenerateData import genUnNormalizedData
-      # data = genUnNormalizedData(0, 800,type='square', step=1)
+      # data = genUnNormalizedData(-300, 300,type='square', step=1)
       # data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
       # ownPred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
       # x, y specific values for
-      x_columns = data.columns[:-1]
+      x_columns = data.columns[:1]
       x_columns = [col for col in x_columns]
       y_columns = data.columns[-1]
       if not type(y_columns) == str:
@@ -111,11 +110,15 @@ if __name__ == "__main__":
                             x_columns=x_columns, y_columns=y_columns)
       # potentially run comparison:
       # first reset_indexes to match with preds
-      # y_test = Runner.NN.y_test[Runner.label_feature_name]
-      # y_test = y_test.reset_index(drop=True)
-      # x_test = Runner.NN.x_test
-      # x_test = x_test.reset_index(drop=True)
-      # preds = Runner.NN.preds["preds"]
-      #
-      # Runner.compare_performance(x_test, y_test, preds,
-      #                            Runner.model_lib, Runner.model_name)
+      y_test = Runner.NN.y_test[Runner.label_feature_name]
+      y_test = y_test.reset_index(drop=True)
+      x_test = Runner.NN.x_test
+      x_test = x_test.reset_index(drop=True)
+      preds = Runner.NN.preds["preds"]
+
+      comparision_df = Runner.compare_performance(x_test, y_test, preds,
+                                 Runner.model_lib, Runner.model_name)
+      performed_value = comparision_df.sort_values("rel_error_percent", ignore_index=True)[
+                        : int(len(comparision_df) * 0.8)].mean()
+      print(performed_value)
+      print(Runner.NN.runtime)

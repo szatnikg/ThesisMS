@@ -51,6 +51,7 @@ class Source:
         self.KEY_hyper_nn_type = "high_level_nn_type"
         self.KEY_hyper_model_lib = "model_lib"
         self.KEY_hyper_show_chart = "show_plot"
+        self.KEY_hyper_learning_r = "learning_rate"
 
 class LoadConfig(Source):
     def __init__(self,config_path=None):
@@ -70,6 +71,7 @@ class LoadConfig(Source):
         self.sequence_length = self.config_file[self.KEY_hyper_seq_length]
         self.train_split = self.config_file[self.KEY_hyper_train_split]
         self.further_training = self.config_file[self.KEY_hyper_further_train]
+        self.learning_rate = self.config_file[self.KEY_hyper_learning_r]
         self.label_feature_name = self.config_file[self.KEY_hyper_label_feature_name]
         self.show_column_name = self.config_file[self.KEY_hyper_show_column_name]
         self.scale_type = self.config_file[self.KEY_hyper_scale_type]
@@ -135,11 +137,23 @@ class Layers:
                 return_sequences = True
             else: return_sequences = False
 
+            if "random" in layer[self.KEY_hidden_initializer].lower():
+                kernel_start = initializers.random_normal
+            elif "identity" in layer[self.KEY_hidden_initializer].lower():
+                kernel_start = initializers.identity
+            elif "none" in layer[self.KEY_hidden_initializer].lower():
+                kernel_start = None
+            elif "ones" in layer[self.KEY_hidden_initializer].lower():
+                kernel_start = initializers.ones
+            elif "uniform" in layer[self.KEY_hidden_initializer].lower():
+                kernel_start = initializers.RandomUniform
+            else: raise ValueError("a")
+
             if nn_type.upper() == "DENSE":
                 hidden_lays = layers.Dense(unit, activation=activation_func,
-                                                 kernel_initializer=initializers.random_normal)
+                                                 kernel_initializer=kernel_start)
             elif nn_type.upper() == "LSTM":
-                hidden_lays = layers.LSTM(unit, activation=activation_func, return_sequences=return_sequences)
+                hidden_lays = layers.LSTM(unit, activation=activation_func, return_sequences=return_sequences, kernel_initializer=kernel_start)
             else:
                 raise ValueError("This layer type is not available choose from: [Dense, LSTM]")
             yield hidden_lays
