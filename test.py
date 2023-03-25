@@ -115,9 +115,9 @@ class ConfigContainer:
     "scale_type": "normal",
     "label_feature_name_for_normalization": "y",
     "show_column_name_in_plot": "x",
-    "shuffle": 1,
+    "shuffle": 0,
     "want_to_normalize": 1,
-    "show_plot": 0,
+    "show_plot": 1,
     "model_lib": 0,
 
     "input_layer": {"type": "LSTM",
@@ -168,7 +168,7 @@ class Tester(ConfigContainer):
         from GenerateData import genUnNormalizedData
         data_I = genUnNormalizedData(0, 800, type='square', step=1)
         data_II = genUnNormalizedData(0, 800, type='root', step=1)
-        data_III = genSinwawe(2,1140)
+        data_III = genSinwawe(2,1600)
 
 
         should_perform_list = [5, 6, 9]
@@ -207,14 +207,14 @@ class Tester(ConfigContainer):
         y_columns = data.columns[-1]
         if not type(y_columns) == str:
             y_columns = [col for col in y_columns]
-
+        else: y_columns = [y_columns]
         # modify config.json to test-specifications
         config_file["model_lib"] = self.unit_lib
         config_file["model_name"] = self.model_name
         self.apply_config(config_file)
 
         # build, run Neural Network
-        self.tester_IF = NN_interface(data[x_columns], data[y_columns])
+        self.tester_IF = NN_interface(data[x_columns], data[y_columns], x_columns=x_columns, y_columns=y_columns)
         # print("y-test:", self.tester_IF.NN.y_test)
         # print("preds:", self.tester_IF.NN.preds["preds"])
         x_test = self.tester_IF.NN.x_test.reset_index(drop=True)

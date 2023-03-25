@@ -80,7 +80,7 @@ class NN_interface(LoadConfig):
 
 if __name__ == "__main__":
       from GenerateData import genSinwawe
-      data = genSinwawe(0.5, 600)
+      data = genSinwawe(2, 1600)
       # Todo the sinWawe resoultion for OwnPred plays a big role here!! -> should decipher in.
       # from GenerateData import genSinwawe
       # ownPred_data = genSinwawe(2, 600, start=0) # 3.1415926535*2*2)
@@ -94,15 +94,13 @@ if __name__ == "__main__":
       # ownPred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
       # x, y specific values for
-      x_columns = data.columns[:1]
+      x_columns = data.columns[:-1]
       x_columns = [col for col in x_columns]
       y_columns = data.columns[-1]
       if not type(y_columns) == str:
             y_columns = [col for col in y_columns]
       else:
             y_columns = [y_columns]
-
-
 
       Runner = NN_interface(data[x_columns], data[y_columns],
                             # Ownpred_x=ownPred_data[x_columns], Ownpred_y=ownPred_data[y_columns],
@@ -122,3 +120,5 @@ if __name__ == "__main__":
                         : int(len(comparision_df) * 0.8)].mean()
       print(performed_value)
       print(Runner.NN.runtime)
+      print(x_test.tail(10))
+      print(y_test.tail(10))

@@ -58,7 +58,7 @@ def genSinwawe(cycles, resolution, start = 0.0):
     for i in x_val:
         # print("i", i)
         # print("res", resolution / i)
-        if i+0.1 >= np.pi * 2 * period:
+        if i+ (1/(resolution/cycles)) >= np.pi * 2 * period:
             counter = 0
             period += 1
 

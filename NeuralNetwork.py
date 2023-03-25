@@ -286,18 +286,20 @@ class NeuralNetwork(InputProcessing, Layers):
         print(self.model.summary())
 
     def train_network(self,  epoch=90, batch_size=1, loss="mse", learning_rate=0.001,
-                      earlystop=0, metrics=["mse"], further_training=True):
+                      earlystop=0, metrics=["mse"], further_training=True, decay_lr_steps=20000):
         self.epoch = epoch
         self.es = self.epoch
 
         if not self.loaded_model:
             # learning schedule for decaying learning_rate
-            lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=learning_rate,
-                decay_steps=20000,
-                decay_rate=0.9)
+            if decay_lr_steps:
+                lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+                    initial_learning_rate=learning_rate,
+                    decay_steps=decay_lr_steps,
+                    decay_rate=0.9)
+            else: lr_schedule = learning_rate
             self.model.compile(loss=loss,  # mae stands for mean absolute error
-                               optimizer=keras.optimizers.Adam(learning_rate=learning_rate),  # stochastic GD
+                               optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
                                metrics=metrics) # metrics=['accuracy']
         if further_training:
             # training the model

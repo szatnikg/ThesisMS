@@ -147,7 +147,7 @@ class Layers:
                 kernel_start = initializers.ones
             elif "uniform" in layer[self.KEY_hidden_initializer].lower():
                 kernel_start = initializers.RandomUniform
-            else: raise ValueError("a")
+            else: raise ValueError("This initializer is not recognized for this program.")
 
             if nn_type.upper() == "DENSE":
                 hidden_lays = layers.Dense(unit, activation=activation_func,
