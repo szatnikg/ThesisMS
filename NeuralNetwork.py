@@ -223,10 +223,10 @@ class NeuralNetwork(InputProcessing, Layers):
         plt.figure("Neural Network Performance",figsize=(10, 5))
         plt.style.use('bmh')
         if with_pred:
-            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=6)
-        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=6)
+            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=19)
+        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=5)
         # if len(self.OwnPred_x) == 0:
-        plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
+        plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=8)
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.xlabel(column_name)
         plt.ylabel("Evaluation feature")

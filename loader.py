@@ -11,9 +11,6 @@ from keras import layers, Input, initializers, Sequential
 # output = pd.concat([NN.x_test.reset_index(inplace=False, drop=False),
 #                         NN.y_test.reset_index(inplace=False, drop=False), NN.preds], axis= 1)
 # output.to_csv("result.csv")
-
-
-
 import json
 class Source:
     def __init__(self, config_path=None):
@@ -80,20 +77,21 @@ class LoadConfig(Source):
         self.nn_type = self.config_file[self.KEY_hyper_nn_type]
         self.model_lib = self.config_file[self.KEY_hyper_model_lib]
 
-class Layers:
+class Layers(Source):
     def __init__(self, layer_obj={}):
+        super(Layers, self).__init__()
         # Key names for NN.build_model() method
-        self.KEY_input_spec = "input_layer"
-        self.KEY_input_type = "type"
-        self.KEY_input_shape_i = "shape_1"
-        self.KEY_input_shape_ii = "shape_2"
-
-        self.KEY_hidden_spec = "hidden_layers"
-        self.KEY_hidden_type = "type"
-        self.KEY_hidden_unit = "unit"
-        self.KEY_hidden_return_seq = "return_sequences"
-        self.KEY_hidden_activation = "activation"
-        self.KEY_hidden_initializer = "initializer"
+        # self.KEY_input_spec = "input_layer"
+        # self.KEY_input_type = "type"
+        # self.KEY_input_shape_i = "shape_1"
+        # self.KEY_input_shape_ii = "shape_2"
+        #
+        # self.KEY_hidden_spec = "hidden_layers"
+        # self.KEY_hidden_type = "type"
+        # self.KEY_hidden_unit = "unit"
+        # self.KEY_hidden_return_seq = "return_sequences"
+        # self.KEY_hidden_activation = "activation"
+        # self.KEY_hidden_initializer = "initializer"
         self.layer_obj = layer_obj
 
     def create_input_layer(self, n_features):

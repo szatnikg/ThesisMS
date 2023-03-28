@@ -79,22 +79,20 @@ class NN_interface(LoadConfig):
 
 
 if __name__ == "__main__":
-      from GenerateData import genSinwawe
-      data = genSinwawe(2, 1600)
       # Todo the sinWawe resoultion for OwnPred plays a big role here!! -> should decipher in.
-      # from GenerateData import genSinwawe
-      # ownPred_data = genSinwawe(2, 600, start=0) # 3.1415926535*2*2)
+      from GenerateData import genSinwawe
+      data = genSinwawe(1, 1600, start=0) # 3.1415926535*2*2)
       # ToDO : represent sinWawe with 0.76 train_split -> it does not know the values between 2pi*0.76 and 2pi
       # Todo: write docu about timeseries prediction: 2-run is necessary 1. train data with train_split=1
       #  2. train_split = 0, loaded_model = 1, further_training = 0 -> it creates the prediction perfectly
       #  , no matter the resolution!
       # from GenerateData import genUnNormalizedData
-      # data = genUnNormalizedData(-300, 300,type='square', step=1)
+      # data = genUnNormalizedData(-200, 200, type='square', step=1)
       # data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
       # ownPred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
       # x, y specific values for
-      x_columns = data.columns[:-1]
+      x_columns = data.columns[:1]
       x_columns = [col for col in x_columns]
       y_columns = data.columns[-1]
       if not type(y_columns) == str:
@@ -118,7 +116,6 @@ if __name__ == "__main__":
                                  Runner.model_lib, Runner.model_name)
       performed_value = comparision_df.sort_values("rel_error_percent", ignore_index=True)[
                         : int(len(comparision_df) * 0.8)].mean()
+      # print(Runner.NN.model.summary())
       print(performed_value)
       print(Runner.NN.runtime)
-      print(x_test.tail(10))
-      print(y_test.tail(10))

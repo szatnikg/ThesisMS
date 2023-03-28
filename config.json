@@ -1,8 +1,8 @@
-{"model_name": "One_SinWawe", "high_level_nn_type": "rnn", "epoch": 150, "batch_size": 10,
+
+{"model_name": "sinwawe_LSTM", "high_level_nn_type": "rnn", "epoch": 200, "batch_size": 10,
   "loaded_model": 0, "learning_rate": 1e-3, "sequence_length": 4, "train_split": 0.76, "further_training": 1,
   "scale_type": "normal", "label_feature_name_for_normalization": "y", "show_column_name_in_plot": "x", "shuffle": 0,
   "want_to_normalize": 1, "show_plot": 1, "model_lib": 0,
   "input_layer": {"type": "LSTM", "shape_1": "None", "shape_2": "n_features"}, "hidden_layers":
-[{"type": "LSTM", "unit": 40, "initializer": "RandomUniform", "activation": "relu", "return_sequences": "true"},
-  {"type": "LSTM", "unit": 30, "initializer": "RandomUniform", "activation": "relu", "return_sequences": "false"},
+[{"type": "LSTM", "unit": 50, "initializer": "RandomUniform", "activation": "relu", "return_sequences": "false"},
   {"type": "Dense", "unit": 1, "initializer": "None", "activation": "None", "return_sequences": "None"}]}
