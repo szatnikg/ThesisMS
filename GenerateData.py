@@ -105,7 +105,7 @@ def linearPlot(my_data):
 
 
 if __name__ == "__main__":
-    df = genSinwawe(3, 100, start=3.14159265*4)
+    df = genComplexData(1000)
     print(df)
     linearPlot(df)
 

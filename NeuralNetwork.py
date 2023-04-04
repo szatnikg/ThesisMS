@@ -182,7 +182,7 @@ class InputProcessing():
         return new_range
 
 
-class NeuralNetwork(InputProcessing, Layers):
+class NeuralNetwork(InputProcessing):
 
     def __init__(self, model_name,
                  x=[], y=[],
@@ -196,7 +196,7 @@ class NeuralNetwork(InputProcessing, Layers):
             os.mkdir(self.data_folder)
 
         super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y, x_columns=x_columns, y_columns=y_columns)
-        self.layer_generator = Layers.__init__(self, layer_obj=self.network_structure)
+        self.layer_generator = Layers(layer_obj=self.network_structure)
         self.model_name = model_name
         self.model_path = os.path.join(self.data_folder, self.model_name, self.model_name + ".h5")
 
@@ -248,10 +248,10 @@ class NeuralNetwork(InputProcessing, Layers):
         # if network_structure (self.layer_obj in Layer class) provided
         # use Layers Child-Class to create model for config,
         # otherwise use built in structure.
-        if self.layer_obj:
-            inp = self.create_input_layer(self.n_features)
+        if self.network_structure:
+            inp = self.layer_generator.create_input_layer(self.n_features)
             self.model.add(inp)
-            for hidden_layer in self.generate_hidden_layer():
+            for hidden_layer in self.layer_generator.generate_hidden_layer():
                 self.model.add(hidden_layer)
             return
 
