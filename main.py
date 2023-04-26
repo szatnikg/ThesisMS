@@ -81,7 +81,7 @@ class NN_interface(LoadConfig):
 if __name__ == "__main__":
       # Todo the sinWawe resoultion for OwnPred plays a big role here!! -> should decipher in.
       from GenerateData import genSinwawe
-      data = genSinwawe(0.5, 800, start=0) # 3.1415926535*2*2)
+      data = genSinwawe(4, 1800, start=3.1415926535*2*2) # 3.1415926535*2*2)
       # ToDO : represent sinWawe with 0.76 train_split -> it does not know the values between 2pi*0.76 and 2pi
       # Todo: write docu about timeseries prediction: 2-run is necessary 1. train data with train_split=1
       #  2. train_split = 0, loaded_model = 1, further_training = 0 -> it creates the prediction perfectly
@@ -92,7 +92,7 @@ if __name__ == "__main__":
       # ownPred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
 
       # x, y specific values for
-      x_columns = data.columns[:1]
+      x_columns = data.columns[:-1]
       x_columns = [col for col in x_columns]
       y_columns = data.columns[-1]
       if not type(y_columns) == str:
