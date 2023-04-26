@@ -182,7 +182,7 @@ class InputProcessing():
         return new_range
 
 
-class NeuralNetwork(InputProcessing, Layers):
+class NeuralNetwork(InputProcessing):
 
     def __init__(self, model_name,
                  x=[], y=[],
@@ -196,7 +196,7 @@ class NeuralNetwork(InputProcessing, Layers):
             os.mkdir(self.data_folder)
 
         super().__init__(x=x, y=y, OwnPred_x=OwnPred_x, OwnPred_y=OwnPred_y, x_columns=x_columns, y_columns=y_columns)
-        self.layer_generator = Layers.__init__(self, layer_obj=self.network_structure)
+        self.layer_generator = Layers(layer_obj=self.network_structure)
         self.model_name = model_name
         self.model_path = os.path.join(self.data_folder, self.model_name, self.model_name + ".h5")
 
@@ -223,10 +223,10 @@ class NeuralNetwork(InputProcessing, Layers):
         plt.figure("Neural Network Performance",figsize=(10, 5))
         plt.style.use('bmh')
         if with_pred:
-            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=6)
-        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=6)
+            plt.scatter(self.x_test[:len(self.preds)][column_name], self.preds["preds"], c='r', label='Predicted data', s=19)
+        plt.scatter(self.x_train[column_name], self.y_train, c='b', label='Training data', s=5)
         # if len(self.OwnPred_x) == 0:
-        plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=5)
+        plt.scatter(self.x_test[column_name], self.y_test, c='g', label='Testing data', s=8)
         plt.title(f"{self.model_name} "+"planed epoch = "+str(self.epoch)+f" Stopped at: {self.es}" )
         plt.xlabel(column_name)
         plt.ylabel("Evaluation feature")
@@ -248,10 +248,10 @@ class NeuralNetwork(InputProcessing, Layers):
         # if network_structure (self.layer_obj in Layer class) provided
         # use Layers Child-Class to create model for config,
         # otherwise use built in structure.
-        if self.layer_obj:
-            inp = self.create_input_layer(self.n_features)
+        if self.network_structure:
+            inp = self.layer_generator.create_input_layer(self.n_features)
             self.model.add(inp)
-            for hidden_layer in self.generate_hidden_layer():
+            for hidden_layer in self.layer_generator.generate_hidden_layer():
                 self.model.add(hidden_layer)
             return
 
@@ -286,16 +286,18 @@ class NeuralNetwork(InputProcessing, Layers):
         print(self.model.summary())
 
     def train_network(self,  epoch=90, batch_size=1, loss="mse", learning_rate=0.001,
-                      earlystop=0, metrics=["mse"], further_training=True):
+                      earlystop=0, metrics=["mse"], further_training=True, decay_lr_steps=20000):
         self.epoch = epoch
         self.es = self.epoch
 
         if not self.loaded_model:
             # learning schedule for decaying learning_rate
-            lr_schedule = keras.optimizers.schedules.ExponentialDecay(
-                initial_learning_rate=learning_rate,
-                decay_steps=20000,
-                decay_rate=0.9)
+            if decay_lr_steps:
+                lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+                    initial_learning_rate=learning_rate,
+                    decay_steps=decay_lr_steps,
+                    decay_rate=0.9)
+            else: lr_schedule = learning_rate
             self.model.compile(loss=loss,  # mae stands for mean absolute error
                                optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
                                metrics=metrics) # metrics=['accuracy']
@@ -311,7 +313,7 @@ class NeuralNetwork(InputProcessing, Layers):
                 self.history_model = self.model.fit(self.x_train, self.y_train, shuffle=True,
                                                     epochs=self.epoch,
                                                     batch_size=batch_size, verbose=0,
-                                                    validation_split=0.2,
+                                                    validation_data=(self.x_test[self.x_columns], self.y_test[self.y_columns]),
                                                     callbacks=[EarlyStop])
             else:
                 self.history_model = self.model.fit(self.fit_data, shuffle=True,

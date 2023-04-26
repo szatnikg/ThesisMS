@@ -37,7 +37,7 @@ def genUnNormalizedData(data_size_from, data_size_to, type="linear", step=200):
         if type =="linear":
             data_y.append(number* 1.3 + addition)
         elif type =="square":
-            data_y.append((number ** (3)) +addition)
+            data_y.append((number ** (2)) +addition)
         elif type == "root":
             data_y.append(math.sqrt(number) * 3.2 + addition)
         elif type =="polinomial":
@@ -58,7 +58,7 @@ def genSinwawe(cycles, resolution, start = 0.0):
     for i in x_val:
         # print("i", i)
         # print("res", resolution / i)
-        if i+0.1 >= np.pi * 2 * period:
+        if i+ (1/(resolution/cycles)) >= np.pi * 2 * period:
             counter = 0
             period += 1
 
@@ -105,7 +105,7 @@ def linearPlot(my_data):
 
 
 if __name__ == "__main__":
-    df = genSinwawe(3, 100, start=3.14159265*4)
+    df = genComplexData(1000)
     print(df)
     linearPlot(df)
 
