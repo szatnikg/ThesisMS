@@ -286,7 +286,7 @@ class NeuralNetwork(InputProcessing):
         print(self.model.summary())
 
     def train_network(self,  epoch=90, batch_size=1, loss="mse", learning_rate=0.001,
-                      earlystop=0, metrics=["mse"], further_training=True, decay_lr_steps=20000):
+                      earlystop=30, metrics=["mse"], further_training=True, decay_lr_steps=20000):
         self.epoch = epoch
         self.es = self.epoch
 
@@ -298,9 +298,13 @@ class NeuralNetwork(InputProcessing):
                     decay_steps=decay_lr_steps,
                     decay_rate=0.9)
             else: lr_schedule = learning_rate
+            if self.classification:
+                metrics=['accuracy']
+                loss="BinaryCrossentropy" #
             self.model.compile(loss=loss,  # mae stands for mean absolute error
                                optimizer=keras.optimizers.Adam(learning_rate=lr_schedule),  # stochastic GD
                                metrics=metrics) # metrics=['accuracy']
+
         if further_training:
             # training the model
             if earlystop:
@@ -361,9 +365,9 @@ class NeuralNetwork(InputProcessing):
                 acc = metrics.Accuracy()
                 self.preds.loc[round(self.preds["preds"]) == 1 , 'correct_output'] = 1
                 self.preds.loc[round(self.preds["preds"]) == 0, 'correct_output'] = 0
-                acc_input = pd.DataFrame({"preds": self.preds["correct_output"]})
-                acc.update_state(self.y_test, acc_input)
-                print("accuracy: ",acc.result().np())
+                self.preds = pd.DataFrame({"preds": self.preds["correct_output"]})
+                acc.update_state(self.y_test, self.preds)
+                print("accuracy: ",acc.result().numpy())
             # acc = metrics.RootMeanSquaredError()
             # acc.update_state(self.y_test, self.preds.squeeze())
 

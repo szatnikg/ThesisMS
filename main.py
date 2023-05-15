@@ -46,7 +46,7 @@ class NN_interface(LoadConfig):
             self.NN.normalize_data(features=[], is_normalize=self.is_normalize, scale_type=self.scale_type, label_feature_name=self.label_feature_name)
             self.NN.split_train_test(train_split=self.train_split, shuffle=self.shuffle)
 
-            self.NN.build_model(nn_type='ann', loaded_model=self.loaded_model)
+            self.NN.build_model(nn_type='ann', loaded_model=self.loaded_model, classification=self.classification)
             self.NN.train_network(epoch=self.epoch, batch_size=self.batch_size, further_training=self.further_training)
             self.NN.predictNN()
 
@@ -79,17 +79,18 @@ class NN_interface(LoadConfig):
 
 
 if __name__ == "__main__":
-      # Todo the sinWawe resoultion for OwnPred plays a big role here!! -> should decipher in.
-      from GenerateData import genSinwawe
-      data = genSinwawe(4, 1800, start=3.1415926535*2*2) # 3.1415926535*2*2)
-      # ToDO : represent sinWawe with 0.76 train_split -> it does not know the values between 2pi*0.76 and 2pi
-      # Todo: write docu about timeseries prediction: 2-run is necessary 1. train data with train_split=1
-      #  2. train_split = 0, loaded_model = 1, further_training = 0 -> it creates the prediction perfectly
-      #  , no matter the resolution!
+      # from GenerateData import genSinwawe
+      # data = genSinwawe(4, 1800, start=3.1415926535*2*2) # 3.1415926535*2*2)
+
       # from GenerateData import genUnNormalizedData
       # data = genUnNormalizedData(-200, 200, type='square', step=1)
       # data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat.xlsx")
-      # ownPred_data = pd.read_excel("C:\Egyetem\Diplomamunka\data\TanulokAdatSajat_ownpred.xlsx")
+      data = pd.read_csv(r"C:\Egyetem\Diplomamunka\data\new_data\diabetes.csv")
+      data['Glucose'] = data['Glucose'].replace(0,data['Glucose'].mean())
+      data['BloodPressure'] = data['BloodPressure'].replace(0, data['BloodPressure'].mean())
+      data['SkinThickness'] = data['SkinThickness'].replace(0, data['SkinThickness'].mean())
+      data['Insulin'] = data['Insulin'].replace(0, data['Insulin'].mean())
+      data['BMI'] = data['BMI'].replace(0, data['BMI'].mean())
 
       # x, y specific values for
       x_columns = data.columns[:-1]
@@ -117,6 +118,6 @@ if __name__ == "__main__":
       performed_value = comparision_df.sort_values("rel_error_percent", ignore_index=True)[
                         : int(len(comparision_df) * 0.8)].mean()
       # print(Runner.NN.model.summary())
-      print(performed_value)
+      # print(performed_value)
       print(Runner.NN.runtime)
 

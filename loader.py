@@ -49,6 +49,7 @@ class Source:
         self.KEY_hyper_model_lib = "model_lib"
         self.KEY_hyper_show_chart = "show_plot"
         self.KEY_hyper_learning_r = "learning_rate"
+        self.KEY_classification = "classification"
 
 class LoadConfig(Source):
     def __init__(self,config_path=None):
@@ -69,6 +70,7 @@ class LoadConfig(Source):
         self.train_split = self.config_file[self.KEY_hyper_train_split]
         self.further_training = self.config_file[self.KEY_hyper_further_train]
         self.learning_rate = self.config_file[self.KEY_hyper_learning_r]
+        self.classification = self.config_file[self.KEY_classification]
         self.label_feature_name = self.config_file[self.KEY_hyper_label_feature_name]
         self.show_column_name = self.config_file[self.KEY_hyper_show_column_name]
         self.scale_type = self.config_file[self.KEY_hyper_scale_type]
