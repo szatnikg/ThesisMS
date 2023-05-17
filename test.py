@@ -14,6 +14,7 @@ class ConfigContainer:
             "model_name": "qubic_prediction",
             "high_level_nn_type": "ann",
             "show_plot": 1,
+            "classification":0,
             "epoch": 200,
             "batch_size": 10,
             "loaded_model": 0,
@@ -60,6 +61,7 @@ class ConfigContainer:
             "model_name": "basic_prediction",
             "high_level_nn_type": "ann",
             "show_plot": 1,
+            "classification":0,
             "epoch": 100,
             "batch_size": 4,
             "loaded_model": 0,
@@ -118,6 +120,7 @@ class ConfigContainer:
     "shuffle": 0,
     "want_to_normalize": 1,
     "show_plot": 1,
+    "classification":0,
     "model_lib": 0,
 
     "input_layer": {"type": "LSTM",
