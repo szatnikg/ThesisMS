@@ -16,7 +16,7 @@ Some of the functionalities and usage info are described below.
   - matplotlib vizualization for performance and epoch-wise training
   - functional testing with example data (square, root, sinus func.)
 
-* **Instruction for MlOps**
+* **Instructions for PROD-stage**
   - Create a REST-API which calls the model.predict() method
   - don't forget to normalize input data before you call the predict() method (or if you used one-hot encode get the input data to same structure as the training data was) 
 
