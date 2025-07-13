@@ -1,6 +1,6 @@
-## Master Thesis: Advanced datascience solutions - data analyzing program
+## Master Thesis: Advanced data science solutions - data analyitics program
 
-I have created a data analyzing program using tensorflow/keras as part of my graduate level thesis work.
+I have created a data analyitics program using tensorflow/keras as part of my graduate level thesis work.
 Some of the functionalities and usage info are described below.
 
 * **Functionalities**
